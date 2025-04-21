@@ -112,6 +112,17 @@ class DatabaseHelper {
     );
   }
 
+  // Update a quiz
+  Future<int> updateQuiz(int id, Map<String, dynamic> quiz) async {
+    Database db = await database;
+    return await db.update(
+      'quizzes',
+      quiz,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   // Question Operations
   Future<int> insertQuestion(Map<String, dynamic> question) async {
     Database db = await database;
@@ -127,6 +138,36 @@ class DatabaseHelper {
     );
   }
 
+  // Update a question
+  Future<int> updateQuestion(int id, Map<String, dynamic> question) async {
+    Database db = await database;
+    return await db.update(
+      'questions',
+      question,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // Delete a question and its options
+  Future<int> deleteQuestion(int questionId) async {
+    Database db = await database;
+    
+    // Delete options for this question
+    await db.delete(
+      'options',
+      where: 'question_id = ?',
+      whereArgs: [questionId],
+    );
+    
+    // Delete the question
+    return await db.delete(
+      'questions',
+      where: 'id = ?',
+      whereArgs: [questionId],
+    );
+  }
+
   // Option Operations
   Future<int> insertOption(Map<String, dynamic> option) async {
     Database db = await database;
@@ -139,6 +180,27 @@ class DatabaseHelper {
       'options',
       where: 'question_id = ?',
       whereArgs: [questionId],
+    );
+  }
+
+  // Update an option
+  Future<int> updateOption(int id, Map<String, dynamic> option) async {
+    Database db = await database;
+    return await db.update(
+      'options',
+      option,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+  
+  // Delete an option
+  Future<int> deleteOption(int optionId) async {
+    Database db = await database;
+    return await db.delete(
+      'options',
+      where: 'id = ?',
+      whereArgs: [optionId],
     );
   }
 

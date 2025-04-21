@@ -3,6 +3,7 @@ import '../database_helper.dart';
 import '../models.dart';
 import 'quiz_screen.dart';
 import 'create_quiz_screen.dart';
+import 'edit_quiz_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -68,6 +69,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _editQuiz(Quiz quiz) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditQuizScreen(quizId: quiz.id!),
+      ),
+    ).then((_) => _loadQuizzes());
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -128,9 +138,18 @@ class _HomeScreenState extends State<HomeScreen> {
                                 fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                           subtitle: Text(quiz.description),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete),
-                            onPressed: () => _confirmDelete(quiz),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit),
+                                onPressed: () => _editQuiz(quiz),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete),
+                                onPressed: () => _confirmDelete(quiz),
+                              ),
+                            ],
                           ),
                           onTap: () {
                             Navigator.push(

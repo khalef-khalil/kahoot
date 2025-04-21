@@ -1,0 +1,174 @@
+import 'dart:async';
+import 'package:path/path.dart';
+import 'package:sqflite/sqflite.dart';
+
+class DatabaseHelper {
+  static final DatabaseHelper _instance = DatabaseHelper._internal();
+  static Database? _database;
+
+  factory DatabaseHelper() => _instance;
+
+  DatabaseHelper._internal();
+
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+    _database = await _initDatabase();
+    return _database!;
+  }
+
+  Future<Database> _initDatabase() async {
+    String path = join(await getDatabasesPath(), 'kahoot.db');
+    return await openDatabase(
+      path,
+      version: 1,
+      onCreate: _createDb,
+    );
+  }
+
+  Future<void> _createDb(Database db, int version) async {
+    // Create quizzes table
+    await db.execute('''
+      CREATE TABLE quizzes(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        description TEXT
+      )
+    ''');
+
+    // Create questions table
+    await db.execute('''
+      CREATE TABLE questions(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        quiz_id INTEGER,
+        question TEXT,
+        time_limit INTEGER,
+        FOREIGN KEY (quiz_id) REFERENCES quizzes(id)
+      )
+    ''');
+
+    // Create options table
+    await db.execute('''
+      CREATE TABLE options(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        question_id INTEGER,
+        option_text TEXT,
+        is_correct INTEGER,
+        FOREIGN KEY (question_id) REFERENCES questions(id)
+      )
+    ''');
+  }
+
+  // Quiz Operations
+  Future<int> insertQuiz(Map<String, dynamic> quiz) async {
+    Database db = await database;
+    return await db.insert('quizzes', quiz);
+  }
+
+  Future<List<Map<String, dynamic>>> getQuizzes() async {
+    Database db = await database;
+    return await db.query('quizzes');
+  }
+
+  Future<Map<String, dynamic>?> getQuiz(int id) async {
+    Database db = await database;
+    List<Map<String, dynamic>> result = 
+        await db.query('quizzes', where: 'id = ?', whereArgs: [id], limit: 1);
+    return result.isNotEmpty ? result.first : null;
+  }
+
+  // Question Operations
+  Future<int> insertQuestion(Map<String, dynamic> question) async {
+    Database db = await database;
+    return await db.insert('questions', question);
+  }
+
+  Future<List<Map<String, dynamic>>> getQuestionsByQuiz(int quizId) async {
+    Database db = await database;
+    return await db.query(
+      'questions',
+      where: 'quiz_id = ?',
+      whereArgs: [quizId],
+    );
+  }
+
+  // Option Operations
+  Future<int> insertOption(Map<String, dynamic> option) async {
+    Database db = await database;
+    return await db.insert('options', option);
+  }
+
+  Future<List<Map<String, dynamic>>> getOptionsByQuestion(int questionId) async {
+    Database db = await database;
+    return await db.query(
+      'options',
+      where: 'question_id = ?',
+      whereArgs: [questionId],
+    );
+  }
+
+  // Insert sample data for testing
+  Future<void> insertSampleData() async {
+    // Insert a sample quiz
+    int quizId = await insertQuiz({
+      'title': 'Sample Quiz',
+      'description': 'A sample quiz to test the app',
+    });
+
+    // Insert sample questions
+    int q1 = await insertQuestion({
+      'quiz_id': quizId,
+      'question': 'What is Flutter?',
+      'time_limit': 20,
+    });
+
+    int q2 = await insertQuestion({
+      'quiz_id': quizId,
+      'question': 'What is SQLite?',
+      'time_limit': 20,
+    });
+
+    // Insert options for question 1
+    await insertOption({
+      'question_id': q1,
+      'option_text': 'A mobile app development framework',
+      'is_correct': 1,
+    });
+    await insertOption({
+      'question_id': q1,
+      'option_text': 'A database',
+      'is_correct': 0,
+    });
+    await insertOption({
+      'question_id': q1,
+      'option_text': 'A programming language',
+      'is_correct': 0,
+    });
+    await insertOption({
+      'question_id': q1,
+      'option_text': 'A web framework',
+      'is_correct': 0,
+    });
+
+    // Insert options for question 2
+    await insertOption({
+      'question_id': q2,
+      'option_text': 'A relational database management system',
+      'is_correct': 1,
+    });
+    await insertOption({
+      'question_id': q2,
+      'option_text': 'A programming language',
+      'is_correct': 0,
+    });
+    await insertOption({
+      'question_id': q2,
+      'option_text': 'A mobile app',
+      'is_correct': 0,
+    });
+    await insertOption({
+      'question_id': q2,
+      'option_text': 'A cloud service',
+      'is_correct': 0,
+    });
+  }
+} 

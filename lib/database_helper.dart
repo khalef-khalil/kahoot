@@ -204,6 +204,49 @@ class DatabaseHelper {
     );
   }
 
+  // Duplicate a quiz with all its questions and options
+  Future<int> duplicateQuiz(int quizId) async {
+    Database db = await database;
+    
+    // Get the quiz to duplicate
+    final quizMap = await getQuiz(quizId);
+    if (quizMap == null) {
+      throw Exception('Quiz not found');
+    }
+    
+    // Create a new quiz with the same details but append "(Copy)" to the title
+    final newQuizId = await insertQuiz({
+      'title': '${quizMap['title']} (Copy)',
+      'description': quizMap['description'],
+    });
+    
+    // Get all questions for this quiz
+    final questionsMap = await getQuestionsByQuiz(quizId);
+    
+    // Duplicate each question
+    for (var questionMap in questionsMap) {
+      final newQuestionId = await insertQuestion({
+        'quiz_id': newQuizId,
+        'question': questionMap['question'],
+        'time_limit': questionMap['time_limit'],
+      });
+      
+      // Get all options for this question
+      final optionsMap = await getOptionsByQuestion(questionMap['id']);
+      
+      // Duplicate each option
+      for (var optionMap in optionsMap) {
+        await insertOption({
+          'question_id': newQuestionId,
+          'option_text': optionMap['option_text'],
+          'is_correct': optionMap['is_correct'],
+        });
+      }
+    }
+    
+    return newQuizId;
+  }
+
   // Insert sample data for testing
   Future<void> insertSampleData() async {
     // Insert a sample quiz

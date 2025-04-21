@@ -5,6 +5,7 @@
 2. Responsive layout for various screen sizes
 3. Intuitive navigation between screens
 4. Loading indicators for asynchronous operations
+5. Bottom sheet menu for quiz options
 
 ## Home Screen
 1. List view of all available quizzes
@@ -12,10 +13,11 @@
 3. "Add Sample Quiz" button when no quizzes exist
 4. Floating action button to create new quizzes
 5. Swipe-to-delete gesture for removing quizzes
-6. Delete button for each quiz
+6. Options menu for each quiz (more_vert button)
 7. Confirmation dialog before quiz deletion
 8. Edit button for each quiz
-9. Tap on quiz to start playing it
+9. Duplicate quiz functionality
+10. Tap on quiz to start playing it
 
 ## Quiz Creation
 1. Form with validation for quiz title and description
@@ -40,6 +42,13 @@
 8. Delete questions from the quiz
 9. Save changes with validation
 10. Success/error feedback via snackbar
+
+## Quiz Management
+1. Delete quizzes with confirmation
+2. Edit existing quizzes
+3. Duplicate quizzes with all questions and options
+4. Duplicated quizzes are marked with "(Copy)" in title
+5. Create new quizzes from scratch
 
 ## Quiz Experience
 1. Display quiz title in app bar
@@ -67,7 +76,8 @@
    - Update quiz components
    - Delete quizzes and related data
 5. Cascading deletes to maintain data integrity
-6. Sample data generation for testing
+6. Duplicate functionality for quizzes and related data
+7. Sample data generation for testing
 
 ## Technical Features
 1. Flutter framework for cross-platform compatibility
@@ -77,4 +87,5 @@
 5. Navigation using MaterialPageRoute
 6. Form validation and feedback
 7. Dialog-based user interactions
-8. Timer-based gameplay mechanics 
+8. Modal bottom sheets for menu options
+9. Timer-based gameplay mechanics 

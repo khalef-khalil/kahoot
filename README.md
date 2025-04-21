@@ -11,6 +11,8 @@ A simple Kahoot-style quiz application built with Flutter and SQLite.
   - Delete quizzes via swipe gesture or delete button
   - Confirmation dialog before quiz deletion
   - Edit existing quizzes
+  - Duplicate quizzes with all questions and options
+  - Easy-access quiz menu with bottom sheet
 
 - **Quiz Creation & Editing**
   - Add title and description for quizzes
@@ -33,6 +35,7 @@ A simple Kahoot-style quiz application built with Flutter and SQLite.
   - Persistent quiz data between app sessions
   - Cascading delete for quizzes and related data
   - Update functionality for all quiz components
+  - Duplicate functionality for entire quizzes
 
 ## Tech Stack
 

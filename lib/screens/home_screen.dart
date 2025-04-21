@@ -44,6 +44,32 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
   }
+  
+  Future<void> _duplicateQuiz(int quizId) async {
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      await _databaseHelper.duplicateQuiz(quizId);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Quiz duplicated successfully')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to duplicate quiz: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        _loadQuizzes();
+      }
+    }
+  }
 
   void _confirmDelete(Quiz quiz) {
     showDialog(
@@ -76,6 +102,54 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context) => EditQuizScreen(quizId: quiz.id!),
       ),
     ).then((_) => _loadQuizzes());
+  }
+  
+  void _showQuizOptions(Quiz quiz) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.play_arrow),
+            title: const Text('Play Quiz'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => QuizScreen(quizId: quiz.id!),
+                ),
+              ).then((_) => _loadQuizzes());
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.edit),
+            title: const Text('Edit Quiz'),
+            onTap: () {
+              Navigator.pop(context);
+              _editQuiz(quiz);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.copy),
+            title: const Text('Duplicate Quiz'),
+            onTap: () {
+              Navigator.pop(context);
+              _duplicateQuiz(quiz.id!);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete, color: Colors.red),
+            title: const Text('Delete Quiz', style: TextStyle(color: Colors.red)),
+            onTap: () {
+              Navigator.pop(context);
+              _confirmDelete(quiz);
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -138,18 +212,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                           subtitle: Text(quiz.description),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit),
-                                onPressed: () => _editQuiz(quiz),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete),
-                                onPressed: () => _confirmDelete(quiz),
-                              ),
-                            ],
+                          trailing: IconButton(
+                            icon: const Icon(Icons.more_vert),
+                            onPressed: () => _showQuizOptions(quiz),
                           ),
                           onTap: () {
                             Navigator.push(

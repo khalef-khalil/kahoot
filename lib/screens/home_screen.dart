@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../database_helper.dart';
 import '../models.dart';
+import '../theme_provider.dart';
 import 'quiz_screen.dart';
 import 'create_quiz_screen.dart';
 import 'edit_quiz_screen.dart';
 import 'statistics_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -155,10 +158,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Kahoot Clone'),
-        backgroundColor: Colors.purple,
+        backgroundColor: themeProvider.primaryColor,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -169,6 +173,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (context) => const StatisticsScreen(),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreen(),
                 ),
               );
             },

@@ -1,12 +1,14 @@
 # Kahoot Clone Features List
 
 ## User Interface
-1. Material Design-based UI with Purple theme
-2. Responsive layout for various screen sizes
-3. Intuitive navigation between screens
-4. Loading indicators for asynchronous operations
-5. Bottom sheet menu for quiz options
-6. Tab-based interface for statistics
+1. Multiple theme options (Purple, Blue, Green, Orange, Dark)
+2. Theme persistence across app restarts
+3. Material Design-based UI with customizable themes
+4. Responsive layout for various screen sizes
+5. Intuitive navigation between screens
+6. Loading indicators for asynchronous operations
+7. Bottom sheet menu for quiz options
+8. Tab-based interface for statistics
 
 ## Home Screen
 1. List view of all available quizzes
@@ -20,6 +22,17 @@
 9. Duplicate quiz functionality
 10. Tap on quiz to start playing it
 11. Statistics button in app bar
+12. Settings button in app bar with theme customization
+
+## Settings Screen
+1. Dedicated settings screen for app customization
+2. Appearance section with theme selection
+3. Visual theme selector with previews
+4. Theme options: Purple (Default), Blue, Green, Orange, Dark
+5. About section with app information
+6. Version information
+7. Developer information
+8. Expandable sections for organization
 
 ## Quiz Creation
 1. Form with validation for quiz title and description
@@ -105,12 +118,14 @@
 ## Technical Features
 1. Flutter framework for cross-platform compatibility
 2. Optimized for Android devices
-3. State management using StatefulWidget
-4. Asynchronous database operations
-5. Navigation using MaterialPageRoute
-6. Form validation and feedback
-7. Dialog-based user interactions
-8. Modal bottom sheets for menu options
-9. Timer-based gameplay mechanics
-10. Date and time formatting
-11. Data visualization components 
+3. State management using StatefulWidget and Provider pattern
+4. Theme management with ChangeNotifierProvider
+5. Persistent theme preferences via SharedPreferences
+6. Asynchronous database operations
+7. Navigation using MaterialPageRoute
+8. Form validation and feedback
+9. Dialog-based user interactions
+10. Modal bottom sheets for menu options
+11. Timer-based gameplay mechanics
+12. Date and time formatting
+13. Data visualization components 

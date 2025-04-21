@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../database_helper.dart';
 import '../models.dart';
+import '../theme_provider.dart';
 import 'package:intl/intl.dart';
 
 class StatisticsScreen extends StatefulWidget {
@@ -153,10 +155,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Statistics'),
-        backgroundColor: Colors.purple,
+        backgroundColor: themeProvider.primaryColor,
         foregroundColor: Colors.white,
         bottom: TabBar(
           controller: _tabController,

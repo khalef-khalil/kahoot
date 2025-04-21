@@ -76,6 +76,42 @@ class DatabaseHelper {
     return result.isNotEmpty ? result.first : null;
   }
 
+  // Delete a quiz and its associated questions and options
+  Future<int> deleteQuiz(int quizId) async {
+    Database db = await database;
+    
+    // Get all questions for this quiz
+    List<Map<String, dynamic>> questions = await db.query(
+      'questions',
+      where: 'quiz_id = ?',
+      whereArgs: [quizId],
+    );
+    
+    // Delete options for each question
+    for (var question in questions) {
+      int questionId = question['id'];
+      await db.delete(
+        'options',
+        where: 'question_id = ?',
+        whereArgs: [questionId],
+      );
+    }
+    
+    // Delete all questions for this quiz
+    await db.delete(
+      'questions',
+      where: 'quiz_id = ?',
+      whereArgs: [quizId],
+    );
+    
+    // Delete the quiz
+    return await db.delete(
+      'quizzes',
+      where: 'id = ?',
+      whereArgs: [quizId],
+    );
+  }
+
   // Question Operations
   Future<int> insertQuestion(Map<String, dynamic> question) async {
     Database db = await database;

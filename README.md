@@ -1,6 +1,40 @@
-# kahoot
+# Kahoot Clone
 
-A new Flutter project.
+A simple Kahoot-style quiz application built with Flutter and SQLite.
+
+## Features
+
+- **Home Screen**
+  - View list of available quizzes
+  - Add sample quiz when no quizzes exist
+  - Create new quizzes via floating action button
+  - Delete quizzes via swipe gesture or delete button
+  - Confirmation dialog before quiz deletion
+
+- **Quiz Creation**
+  - Add title and description for quizzes
+  - Create multiple-choice questions with 4 options each
+  - Set time limits for each question
+  - Mark correct answers
+  - Preview questions before saving
+
+- **Quiz Experience**
+  - Countdown timer for each question
+  - Progress tracking through quiz
+  - Color-coded answer buttons (Kahoot style)
+  - Immediate feedback on correct/incorrect answers
+  - Score tracking and final results screen
+
+- **Database**
+  - Local SQLite storage for quizzes, questions and answers
+  - Persistent quiz data between app sessions
+  - Cascading delete for quizzes and related data
+
+## Tech Stack
+
+- Flutter for cross-platform mobile UI
+- SQLite for local database storage
+- Dart programming language
 
 ## Getting Started
 

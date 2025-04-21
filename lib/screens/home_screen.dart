@@ -30,6 +30,44 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<void> _deleteQuiz(int quizId) async {
+    try {
+      await _databaseHelper.deleteQuiz(quizId);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Quiz deleted successfully')),
+      );
+      _loadQuizzes();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to delete quiz: $e')),
+      );
+    }
+  }
+
+  void _confirmDelete(Quiz quiz) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Quiz'),
+        content: Text('Are you sure you want to delete "${quiz.title}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteQuiz(quiz.id!);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -64,24 +102,45 @@ class _HomeScreenState extends State<HomeScreen> {
                   itemCount: _quizzes.length,
                   itemBuilder: (context, index) {
                     final quiz = _quizzes[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      child: ListTile(
-                        title: Text(
-                          quiz.title,
-                          style: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
+                    return Dismissible(
+                      key: Key(quiz.id.toString()),
+                      background: Container(
+                        color: Colors.red,
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        child: const Icon(
+                          Icons.delete,
+                          color: Colors.white,
                         ),
-                        subtitle: Text(quiz.description),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => QuizScreen(quizId: quiz.id!),
-                            ),
-                          ).then((_) => _loadQuizzes());
-                        },
+                      ),
+                      direction: DismissDirection.endToStart,
+                      confirmDismiss: (direction) async {
+                        _confirmDelete(quiz);
+                        return false; // Prevent automatic dismissal
+                      },
+                      child: Card(
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        child: ListTile(
+                          title: Text(
+                            quiz.title,
+                            style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(quiz.description),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () => _confirmDelete(quiz),
+                          ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => QuizScreen(quizId: quiz.id!),
+                              ),
+                            ).then((_) => _loadQuizzes());
+                          },
+                        ),
                       ),
                     );
                   },

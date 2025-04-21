@@ -13,6 +13,7 @@ A simple Kahoot-style quiz application built with Flutter and SQLite.
   - Edit existing quizzes
   - Duplicate quizzes with all questions and options
   - Easy-access quiz menu with bottom sheet
+  - Quick access to statistics
 
 - **Quiz Creation & Editing**
   - Add title and description for quizzes
@@ -29,6 +30,16 @@ A simple Kahoot-style quiz application built with Flutter and SQLite.
   - Color-coded answer buttons (Kahoot style)
   - Immediate feedback on correct/incorrect answers
   - Score tracking and final results screen
+  - Automatic saving of quiz results
+
+- **Statistics & History**
+  - Performance summary dashboard
+  - Quiz history with dates and scores
+  - Grade distribution visualization
+  - Track best and average scores
+  - Swipe-to-delete individual history entries
+  - Clear all history option
+  - Performance metrics (total quizzes, unique quizzes, etc.)
 
 - **Database**
   - Local SQLite storage for quizzes, questions and answers
@@ -36,6 +47,7 @@ A simple Kahoot-style quiz application built with Flutter and SQLite.
   - Cascading delete for quizzes and related data
   - Update functionality for all quiz components
   - Duplicate functionality for entire quizzes
+  - Quiz results and statistics tracking
 
 ## Tech Stack
 

@@ -90,4 +90,62 @@ class Option {
       'is_correct': isCorrect ? 1 : 0,
     };
   }
+}
+
+class QuizResult {
+  final int? id;
+  final int quizId;
+  final int score;
+  final int totalQuestions;
+  final double percentage;
+  final String dateTaken;
+  String? quizTitle; // For display purposes, not stored in database directly
+
+  QuizResult({
+    this.id,
+    required this.quizId,
+    required this.score,
+    required this.totalQuestions,
+    required this.percentage,
+    required this.dateTaken,
+    this.quizTitle,
+  });
+
+  factory QuizResult.fromMap(Map<String, dynamic> map) {
+    return QuizResult(
+      id: map['id'],
+      quizId: map['quiz_id'],
+      score: map['score'],
+      totalQuestions: map['total_questions'],
+      percentage: map['percentage'] is int 
+          ? (map['percentage'] as int).toDouble() 
+          : map['percentage'],
+      dateTaken: map['date_taken'],
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'quiz_id': quizId,
+      'score': score,
+      'total_questions': totalQuestions,
+      'percentage': percentage,
+      'date_taken': dateTaken,
+    };
+  }
+  
+  // Format the percentage for display
+  String getFormattedPercentage() {
+    return '${(percentage * 100).toStringAsFixed(1)}%';
+  }
+  
+  // Get a performance grade based on percentage
+  String getGrade() {
+    if (percentage >= 0.9) return 'A';
+    if (percentage >= 0.8) return 'B';
+    if (percentage >= 0.7) return 'C';
+    if (percentage >= 0.6) return 'D';
+    return 'F';
+  }
 } 

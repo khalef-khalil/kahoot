@@ -20,9 +20,26 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'kahoot.db');
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDb,
+      onUpgrade: _onUpgrade,
     );
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS quiz_results(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          quiz_id INTEGER,
+          score INTEGER,
+          total_questions INTEGER,
+          percentage REAL,
+          date_taken TEXT,
+          FOREIGN KEY (quiz_id) REFERENCES quizzes(id)
+        )
+      ''');
+    }
   }
 
   Future<void> _createDb(Database db, int version) async {
@@ -54,6 +71,19 @@ class DatabaseHelper {
         option_text TEXT,
         is_correct INTEGER,
         FOREIGN KEY (question_id) REFERENCES questions(id)
+      )
+    ''');
+    
+    // Create quiz_results table
+    await db.execute('''
+      CREATE TABLE quiz_results(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        quiz_id INTEGER,
+        score INTEGER,
+        total_questions INTEGER,
+        percentage REAL,
+        date_taken TEXT,
+        FOREIGN KEY (quiz_id) REFERENCES quizzes(id)
       )
     ''');
   }
@@ -245,6 +275,104 @@ class DatabaseHelper {
     }
     
     return newQuizId;
+  }
+
+  // Quiz Result Operations
+  Future<void> ensureQuizResultsTableExists() async {
+    Database db = await database;
+    // Check if the table exists
+    var tables = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='quiz_results'");
+    if (tables.isEmpty) {
+      // Create the table if it doesn't exist
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS quiz_results(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          quiz_id INTEGER,
+          score INTEGER,
+          total_questions INTEGER,
+          percentage REAL,
+          date_taken TEXT,
+          FOREIGN KEY (quiz_id) REFERENCES quizzes(id)
+        )
+      ''');
+    }
+  }
+
+  Future<int> saveQuizResult(Map<String, dynamic> result) async {
+    await ensureQuizResultsTableExists();
+    Database db = await database;
+    return await db.insert('quiz_results', result);
+  }
+
+  Future<List<Map<String, dynamic>>> getQuizResults() async {
+    await ensureQuizResultsTableExists();
+    Database db = await database;
+    return await db.query(
+      'quiz_results',
+      orderBy: 'date_taken DESC',
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getQuizResultsByQuiz(int quizId) async {
+    await ensureQuizResultsTableExists();
+    Database db = await database;
+    return await db.query(
+      'quiz_results',
+      where: 'quiz_id = ?',
+      whereArgs: [quizId],
+      orderBy: 'date_taken DESC',
+    );
+  }
+  
+  Future<Map<String, dynamic>> getQuizResultStats() async {
+    await ensureQuizResultsTableExists();
+    Database db = await database;
+    
+    // Get total number of quiz attempts
+    final totalAttemptsResult = await db.rawQuery('SELECT COUNT(*) AS count FROM quiz_results');
+    final totalAttempts = Sqflite.firstIntValue(totalAttemptsResult) ?? 0;
+    
+    // Default values in case there are no results
+    double avgScore = 0.0;
+    double bestScore = 0.0;
+    int uniqueQuizzes = 0;
+    
+    if (totalAttempts > 0) {
+      // Get average score percentage
+      final avgScoreResult = await db.rawQuery('SELECT AVG(percentage) AS avg_score FROM quiz_results');
+      avgScore = avgScoreResult.first['avg_score'] as double? ?? 0.0;
+      
+      // Get best score
+      final bestScoreResult = await db.rawQuery('SELECT MAX(percentage) AS best_score FROM quiz_results');
+      bestScore = bestScoreResult.first['best_score'] as double? ?? 0.0;
+      
+      // Get total quizzes taken
+      final uniqueQuizzesResult = await db.rawQuery('SELECT COUNT(DISTINCT quiz_id) AS count FROM quiz_results');
+      uniqueQuizzes = Sqflite.firstIntValue(uniqueQuizzesResult) ?? 0;
+    }
+    
+    return {
+      'total_attempts': totalAttempts,
+      'avg_score': avgScore,
+      'best_score': bestScore,
+      'unique_quizzes': uniqueQuizzes,
+    };
+  }
+  
+  Future<int> deleteQuizResult(int resultId) async {
+    await ensureQuizResultsTableExists();
+    Database db = await database;
+    return await db.delete(
+      'quiz_results',
+      where: 'id = ?',
+      whereArgs: [resultId],
+    );
+  }
+  
+  Future<int> deleteAllQuizResults() async {
+    await ensureQuizResultsTableExists();
+    Database db = await database;
+    return await db.delete('quiz_results');
   }
 
   // Insert sample data for testing

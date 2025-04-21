@@ -6,6 +6,7 @@
 3. Intuitive navigation between screens
 4. Loading indicators for asynchronous operations
 5. Bottom sheet menu for quiz options
+6. Tab-based interface for statistics
 
 ## Home Screen
 1. List view of all available quizzes
@@ -18,6 +19,7 @@
 8. Edit button for each quiz
 9. Duplicate quiz functionality
 10. Tap on quiz to start playing it
+11. Statistics button in app bar
 
 ## Quiz Creation
 1. Form with validation for quiz title and description
@@ -65,6 +67,24 @@
 9. Automatic progression to next question after answer or time expiration
 10. Final score screen showing results
 11. "Return to Home" button on completion
+12. Automatic saving of quiz results
+
+## Statistics and History
+1. Dedicated statistics screen with tabs
+2. Summary tab with performance metrics
+3. Statistics cards with icons and values
+4. Total quizzes taken counter
+5. Unique quizzes completed counter
+6. Average score percentage
+7. Best score tracking
+8. Grade distribution visualization (A-F)
+9. History tab with list of all quiz attempts
+10. Date and time tracking for quiz attempts
+11. Score display with grade assignment
+12. Swipe-to-delete for individual history items
+13. Clear all history option
+14. Refresh button to update statistics
+15. Empty state messages when no data exists
 
 ## Database Features
 1. SQLite local database for persistent storage
@@ -78,6 +98,9 @@
 5. Cascading deletes to maintain data integrity
 6. Duplicate functionality for quizzes and related data
 7. Sample data generation for testing
+8. Quiz results tracking and storage
+9. Performance metrics calculation
+10. History management
 
 ## Technical Features
 1. Flutter framework for cross-platform compatibility
@@ -88,4 +111,6 @@
 6. Form validation and feedback
 7. Dialog-based user interactions
 8. Modal bottom sheets for menu options
-9. Timer-based gameplay mechanics 
+9. Timer-based gameplay mechanics
+10. Date and time formatting
+11. Data visualization components 

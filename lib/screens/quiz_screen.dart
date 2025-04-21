@@ -91,6 +91,7 @@ class _QuizScreenState extends State<QuizScreen> {
       } else {
         // Quiz is finished
         _quizFinished = true;
+        _saveQuizResult();
       }
     });
   }
@@ -113,6 +114,30 @@ class _QuizScreenState extends State<QuizScreen> {
     Future.delayed(const Duration(seconds: 2), () {
       _nextQuestion();
     });
+  }
+
+  Future<void> _saveQuizResult() async {
+    final percentage = _score / _questions.length;
+    
+    try {
+      // Make sure the quiz_results table exists
+      await _databaseHelper.ensureQuizResultsTableExists();
+      
+      await _databaseHelper.saveQuizResult({
+        'quiz_id': widget.quizId,
+        'score': _score,
+        'total_questions': _questions.length,
+        'percentage': percentage,
+        'date_taken': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      print('Failed to save quiz result: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Unable to save quiz result. Your score was $_score/${_questions.length}')),
+        );
+      }
+    }
   }
 
   @override

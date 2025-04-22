@@ -19,6 +19,9 @@ enum QuizSortOption {
 enum FilterOption {
   all,
   favorites,
+  easy,
+  medium,
+  hard,
 }
 
 class HomeScreen extends StatefulWidget {
@@ -66,9 +69,23 @@ class _HomeScreenState extends State<HomeScreen> {
             .toList();
       }
       
-      // Then filter by favorites if needed
-      if (_currentFilter == FilterOption.favorites) {
-        result = result.where((quiz) => quiz.isFavorite).toList();
+      // Apply filters based on selection
+      switch (_currentFilter) {
+        case FilterOption.favorites:
+          result = result.where((quiz) => quiz.isFavorite).toList();
+          break;
+        case FilterOption.easy:
+          result = result.where((quiz) => quiz.difficulty == QuizDifficulty.easy).toList();
+          break;
+        case FilterOption.medium:
+          result = result.where((quiz) => quiz.difficulty == QuizDifficulty.medium).toList();
+          break;
+        case FilterOption.hard:
+          result = result.where((quiz) => quiz.difficulty == QuizDifficulty.hard).toList();
+          break;
+        case FilterOption.all:
+          // No additional filtering needed
+          break;
       }
       
       _filteredQuizzes = result;
@@ -376,9 +393,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           PopupMenuButton<FilterOption>(
             tooltip: 'Filter quizzes',
-            icon: Icon(_currentFilter == FilterOption.favorites 
-                ? Icons.favorite
-                : Icons.filter_list),
+            icon: Icon(_getFilterIcon()),
             onSelected: _changeFilter,
             itemBuilder: (context) => [
               PopupMenuItem(
@@ -411,6 +426,65 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(width: 8),
                     const Text('Favorites'),
                     if (_currentFilter == FilterOption.favorites)
+                      const Icon(Icons.check, color: Colors.red),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                enabled: false,
+                child: Text('Difficulty'),
+              ),
+              PopupMenuItem(
+                value: FilterOption.easy,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.circle,
+                      color: _currentFilter == FilterOption.easy 
+                          ? Colors.green
+                          : Colors.green.withOpacity(0.5),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('Easy'),
+                    if (_currentFilter == FilterOption.easy)
+                      const Icon(Icons.check, color: Colors.green),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: FilterOption.medium,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.circle,
+                      color: _currentFilter == FilterOption.medium 
+                          ? Colors.orange
+                          : Colors.orange.withOpacity(0.5),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('Medium'),
+                    if (_currentFilter == FilterOption.medium)
+                      const Icon(Icons.check, color: Colors.orange),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: FilterOption.hard,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.circle,
+                      color: _currentFilter == FilterOption.hard 
+                          ? Colors.red
+                          : Colors.red.withOpacity(0.5),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('Hard'),
+                    if (_currentFilter == FilterOption.hard)
                       const Icon(Icons.check, color: Colors.red),
                   ],
                 ),
@@ -505,10 +579,27 @@ class _HomeScreenState extends State<HomeScreen> {
                                 leading: quiz.isFavorite
                                     ? const Icon(Icons.favorite, color: Colors.red)
                                     : null,
-                                title: Text(
-                                  quiz.title,
-                                  style: const TextStyle(
-                                      fontSize: 18, fontWeight: FontWeight.bold),
+                                title: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        quiz.title,
+                                        style: const TextStyle(
+                                            fontSize: 18, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: _getDifficultyColor(quiz.difficulty),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Text(
+                                        quiz.difficulty.name,
+                                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 subtitle: Text(quiz.description),
                                 trailing: Row(
@@ -558,5 +649,32 @@ class _HomeScreenState extends State<HomeScreen> {
         child: const Icon(Icons.add),
       ),
     );
+  }
+  
+  Color _getDifficultyColor(QuizDifficulty difficulty) {
+    switch (difficulty) {
+      case QuizDifficulty.easy:
+        return Colors.green;
+      case QuizDifficulty.medium:
+        return Colors.orange;
+      case QuizDifficulty.hard:
+        return Colors.red;
+    }
+  }
+
+  IconData _getFilterIcon() {
+    switch (_currentFilter) {
+      case FilterOption.favorites:
+        return Icons.favorite;
+      case FilterOption.easy:
+        return Icons.circle;
+      case FilterOption.medium:
+        return Icons.circle;
+      case FilterOption.hard:
+        return Icons.circle;
+      case FilterOption.all:
+      default:
+        return Icons.filter_list;
+    }
   }
 } 

@@ -13,6 +13,8 @@
 - Search and filter quizzes by title or description
 - Sort quizzes by title (A-Z/Z-A) or creation order (newest/oldest)
 - Mark quizzes as favorites and filter by favorites
+- Filter quizzes by difficulty level (Easy, Medium, Hard)
+- Visual difficulty indicators with color coding
 
 ## Quiz Creation & Editing
 - Add title and description for quizzes
@@ -22,6 +24,7 @@
 - Preview questions before saving
 - Edit existing questions and options
 - Delete questions from quizzes
+- Set difficulty level for quizzes (Easy, Medium, Hard)
 
 ## Quiz Experience
 - Countdown timer for each question
@@ -55,4 +58,5 @@
 - Update functionality for all quiz components
 - Duplicate functionality for entire quizzes
 - Quiz results and statistics tracking
-- Quiz completion time tracking 
+- Quiz completion time tracking
+- Difficulty level support for quizzes 

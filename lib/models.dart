@@ -1,14 +1,41 @@
+// Define difficulty levels
+enum QuizDifficulty {
+  easy,
+  medium,
+  hard
+}
+
+// Helper extension to convert from/to string
+extension QuizDifficultyExtension on QuizDifficulty {
+  String get name {
+    switch (this) {
+      case QuizDifficulty.easy: return 'Easy';
+      case QuizDifficulty.medium: return 'Medium';
+      case QuizDifficulty.hard: return 'Hard';
+    }
+  }
+  
+  static QuizDifficulty fromString(String? value) {
+    if (value == 'Easy') return QuizDifficulty.easy;
+    if (value == 'Medium') return QuizDifficulty.medium;
+    if (value == 'Hard') return QuizDifficulty.hard;
+    return QuizDifficulty.medium; // Default
+  }
+}
+
 class Quiz {
   final int? id;
   final String title;
   final String description;
   final bool isFavorite;
+  final QuizDifficulty difficulty;
 
   Quiz({
     this.id,
     required this.title,
     required this.description,
     this.isFavorite = false,
+    this.difficulty = QuizDifficulty.medium,
   });
 
   factory Quiz.fromMap(Map<String, dynamic> map) {
@@ -17,6 +44,9 @@ class Quiz {
       title: map['title'],
       description: map['description'],
       isFavorite: map['is_favorite'] == 1,
+      difficulty: map['difficulty'] != null 
+          ? QuizDifficultyExtension.fromString(map['difficulty'])
+          : QuizDifficulty.medium,
     );
   }
 
@@ -26,6 +56,7 @@ class Quiz {
       'title': title,
       'description': description,
       'is_favorite': isFavorite ? 1 : 0,
+      'difficulty': difficulty.name,
     };
   }
 
@@ -35,12 +66,14 @@ class Quiz {
     String? title,
     String? description,
     bool? isFavorite,
+    QuizDifficulty? difficulty,
   }) {
     return Quiz(
       id: id ?? this.id,
       title: title ?? this.title,
       description: description ?? this.description,
       isFavorite: isFavorite ?? this.isFavorite,
+      difficulty: difficulty ?? this.difficulty,
     );
   }
 }

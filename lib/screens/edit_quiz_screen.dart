@@ -21,6 +21,7 @@ class _EditQuizScreenState extends State<EditQuizScreen> {
   bool _isLoading = true;
   bool _isSaving = false;
   late Quiz _quiz;
+  QuizDifficulty _selectedDifficulty = QuizDifficulty.medium;
 
   @override
   void initState() {
@@ -43,6 +44,7 @@ class _EditQuizScreenState extends State<EditQuizScreen> {
         _quiz = Quiz.fromMap(quizMap);
         _titleController.text = _quiz.title;
         _descriptionController.text = _quiz.description;
+        _selectedDifficulty = _quiz.difficulty;
         
         // Load questions
         final questionsMap = await _databaseHelper.getQuestionsByQuiz(widget.quizId);
@@ -96,6 +98,7 @@ class _EditQuizScreenState extends State<EditQuizScreen> {
         await _databaseHelper.updateQuiz(widget.quizId, {
           'title': _titleController.text,
           'description': _descriptionController.text,
+          'difficulty': _selectedDifficulty.name,
         });
 
         // For simplicity, we're recreating all questions and options
@@ -434,137 +437,163 @@ class _EditQuizScreenState extends State<EditQuizScreen> {
         title: const Text('Edit Quiz'),
         backgroundColor: Colors.purple,
         foregroundColor: Colors.white,
+        actions: [
+          if (!_isLoading)
+            IconButton(
+              icon: const Icon(Icons.save),
+              onPressed: _isSaving ? null : _saveQuiz,
+            ),
+        ],
       ),
-      body: _isLoading || _isSaving
+      body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextFormField(
-                      controller: _titleController,
-                      decoration: const InputDecoration(
-                        labelText: 'Quiz Title',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a title';
-                        }
-                        return null;
-                      },
+          : Form(
+              key: _formKey,
+              child: ListView(
+                padding: const EdgeInsets.all(16.0),
+                children: [
+                  TextFormField(
+                    controller: _titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Title',
+                      border: OutlineInputBorder(),
                     ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _descriptionController,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
-                        border: OutlineInputBorder(),
-                      ),
-                      maxLines: 3,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a description';
-                        }
-                        return null;
-                      },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a title';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16.0),
+                  TextFormField(
+                    controller: _descriptionController,
+                    decoration: const InputDecoration(
+                      labelText: 'Description',
+                      border: OutlineInputBorder(),
                     ),
-                    const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Questions',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
+                    maxLines: 3,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a description';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16.0),
+                  DropdownButtonFormField<QuizDifficulty>(
+                    decoration: const InputDecoration(
+                      labelText: 'Difficulty',
+                      border: OutlineInputBorder(),
+                    ),
+                    value: _selectedDifficulty,
+                    items: QuizDifficulty.values.map((difficulty) {
+                      return DropdownMenuItem<QuizDifficulty>(
+                        value: difficulty,
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.circle,
+                              color: _getDifficultyColor(difficulty),
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(difficulty.name),
+                          ],
                         ),
-                        ElevatedButton.icon(
-                          onPressed: _addQuestion,
-                          icon: const Icon(Icons.add),
-                          label: const Text('Add Question'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.purple,
-                            foregroundColor: Colors.white,
-                          ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedDifficulty = value!;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 24.0),
+                  Row(
+                    children: [
+                      const Text(
+                        'Questions',
+                        style: TextStyle(
+                          fontSize: 18.0,
+                          fontWeight: FontWeight.bold,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    if (_questions.isEmpty)
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: Text(
-                            'No questions added yet. Add your first question!',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
+                      ),
+                      const Spacer(),
+                      ElevatedButton.icon(
+                        onPressed: _addQuestion,
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8.0),
+                  _questions.isEmpty
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Text(
+                              'No questions added yet. Tap "Add" to create a question.',
+                              textAlign: TextAlign.center,
                             ),
                           ),
+                        )
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _questions.length,
+                          itemBuilder: (context, index) {
+                            final question = _questions[index];
+                            return _buildQuestionItem(question, index);
+                          },
                         ),
-                      )
-                    else
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _questions.length,
-                        itemBuilder: (context, index) {
-                          final question = _questions[index];
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            child: ListTile(
-                              title: Text(
-                                question.question,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              subtitle: Text(
-                                  'Time: ${question.timeLimit}s | Options: ${question.options!.length}'),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.edit),
-                                    onPressed: () => _editQuestion(index),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete),
-                                    onPressed: () {
-                                      setState(() {
-                                        _questions.removeAt(index);
-                                      });
-                                    },
-                                  ),
-                                ],
-                              ),
-                              onTap: () => _editQuestion(index),
-                            ),
-                          );
-                        },
-                      ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _saveQuiz,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        child: const Text(
-                          'Save Changes',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                ],
               ),
             ),
+    );
+  }
+  
+  Color _getDifficultyColor(QuizDifficulty difficulty) {
+    switch (difficulty) {
+      case QuizDifficulty.easy:
+        return Colors.green;
+      case QuizDifficulty.medium:
+        return Colors.orange;
+      case QuizDifficulty.hard:
+        return Colors.red;
+    }
+  }
+
+  Widget _buildQuestionItem(Question question, int index) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        title: Text(
+          question.question,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+            'Time: ${question.timeLimit}s | Options: ${question.options!.length}'),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () => _editQuestion(index),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: () {
+                setState(() {
+                  _questions.removeAt(index);
+                });
+              },
+            ),
+          ],
+        ),
+        onTap: () => _editQuestion(index),
+      ),
     );
   }
 } 

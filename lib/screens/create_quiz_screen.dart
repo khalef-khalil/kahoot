@@ -17,6 +17,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
   
   final List<Question> _questions = [];
   bool _isLoading = false;
+  QuizDifficulty _selectedDifficulty = QuizDifficulty.medium;
 
   @override
   void dispose() {
@@ -43,6 +44,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
         final quizId = await _databaseHelper.insertQuiz({
           'title': _titleController.text,
           'description': _descriptionController.text,
+          'difficulty': _selectedDifficulty.name,
         });
 
         // Save questions and options
@@ -229,127 +231,221 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
         title: const Text('Create Quiz'),
         backgroundColor: Colors.purple,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.save),
+            onPressed: _isLoading ? null : _saveQuiz,
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextFormField(
-                      controller: _titleController,
-                      decoration: const InputDecoration(
-                        labelText: 'Quiz Title',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a title';
-                        }
-                        return null;
-                      },
+          : Form(
+              key: _formKey,
+              child: ListView(
+                padding: const EdgeInsets.all(16.0),
+                children: [
+                  TextFormField(
+                    controller: _titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Title',
+                      border: OutlineInputBorder(),
                     ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _descriptionController,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
-                        border: OutlineInputBorder(),
-                      ),
-                      maxLines: 3,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a description';
-                        }
-                        return null;
-                      },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a title';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16.0),
+                  TextFormField(
+                    controller: _descriptionController,
+                    decoration: const InputDecoration(
+                      labelText: 'Description',
+                      border: OutlineInputBorder(),
                     ),
-                    const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Questions',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
+                    maxLines: 3,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a description';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16.0),
+                  DropdownButtonFormField<QuizDifficulty>(
+                    decoration: const InputDecoration(
+                      labelText: 'Difficulty',
+                      border: OutlineInputBorder(),
+                    ),
+                    value: _selectedDifficulty,
+                    items: QuizDifficulty.values.map((difficulty) {
+                      return DropdownMenuItem<QuizDifficulty>(
+                        value: difficulty,
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.circle,
+                              color: _getDifficultyColor(difficulty),
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(difficulty.name),
+                          ],
                         ),
-                        ElevatedButton.icon(
-                          onPressed: _addQuestion,
-                          icon: const Icon(Icons.add),
-                          label: const Text('Add Question'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.purple,
-                            foregroundColor: Colors.white,
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedDifficulty = value!;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 24.0),
+                  Row(
+                    children: [
+                      const Text(
+                        'Questions',
+                        style: TextStyle(
+                          fontSize: 18.0,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      ElevatedButton.icon(
+                        onPressed: _addQuestion,
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8.0),
+                  _questions.isEmpty
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Text(
+                              'No questions added yet. Tap "Add" to create a question.',
+                              textAlign: TextAlign.center,
+                            ),
                           ),
+                        )
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _questions.length,
+                          itemBuilder: (context, index) {
+                            final question = _questions[index];
+                            return _buildQuestionItem(question, index);
+                          },
+                        ),
+                ],
+              ),
+            ),
+    );
+  }
+  
+  Color _getDifficultyColor(QuizDifficulty difficulty) {
+    switch (difficulty) {
+      case QuizDifficulty.easy:
+        return Colors.green;
+      case QuizDifficulty.medium:
+        return Colors.orange;
+      case QuizDifficulty.hard:
+        return Colors.red;
+    }
+  }
+
+  Widget _buildQuestionItem(Question question, int index) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        title: Text(
+          question.question,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          'Time: ${question.timeLimit}s | Options: ${question.options!.length}',
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.delete),
+          onPressed: () {
+            setState(() {
+              _questions.removeAt(index);
+            });
+          },
+        ),
+        onTap: () {
+          // Show question details
+          _showQuestionDetails(question);
+        },
+      ),
+    );
+  }
+
+  void _showQuestionDetails(Question question) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        // Find correct option
+        final correctOptionIndex = question.options!.indexWhere((o) => o.isCorrect);
+        
+        return AlertDialog(
+          title: const Text('Question Details'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  question.question,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text('Time limit: ${question.timeLimit} seconds'),
+                const SizedBox(height: 16),
+                const Text(
+                  'Options:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                ...List.generate(question.options!.length, (index) {
+                  final option = question.options![index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Row(
+                      children: [
+                        Icon(
+                          option.isCorrect
+                              ? Icons.check_circle
+                              : Icons.circle_outlined,
+                          color: option.isCorrect ? Colors.green : Colors.grey,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(option.optionText),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    if (_questions.isEmpty)
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: Text(
-                            'No questions added yet. Add your first question!',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ),
-                      )
-                    else
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _questions.length,
-                        itemBuilder: (context, index) {
-                          final question = _questions[index];
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            child: ListTile(
-                              title: Text(
-                                question.question,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              subtitle: Text(
-                                  'Time: ${question.timeLimit}s | Options: ${question.options!.length}'),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.delete),
-                                onPressed: () {
-                                  setState(() {
-                                    _questions.removeAt(index);
-                                  });
-                                },
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _saveQuiz,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        child: const Text(
-                          'Save Quiz',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                  );
+                }),
+              ],
             ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
     );
   }
 } 

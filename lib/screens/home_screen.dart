@@ -505,7 +505,94 @@ class _HomeScreenState extends State<HomeScreen> {
     final currentUser = _authService.currentUser;
     
     return Scaffold(
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: themeProvider.primaryColor,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const CircleAvatar(
+                    radius: 32,
+                    backgroundColor: Colors.white24,
+                    child: Icon(Icons.person, size: 40, color: Colors.white),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    currentUser?.username ?? 'User',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    currentUser?.email ?? '',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.bar_chart),
+              title: const Text('Statistics'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const StatisticsScreen(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.people),
+              title: const Text('Multiplayer'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const MultiplayerScreen(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('Settings'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsScreen(),
+                  ),
+                );
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.download),
+              title: const Text('Import Quiz'),
+              onTap: () {
+                Navigator.pop(context);
+                _importQuiz();
+              },
+            ),
+          ],
+        ),
+      ),
       appBar: AppBar(
+        elevation: 0,
         title: _isSearching
             ? TextField(
                 controller: _searchController,
@@ -533,157 +620,158 @@ class _HomeScreenState extends State<HomeScreen> {
               });
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.download),
-            tooltip: 'Import Quiz',
-            onPressed: _importQuiz,
-          ),
-          IconButton(
-            icon: const Icon(Icons.sort),
-            tooltip: 'Sort quizzes',
-            onPressed: _quizzes.isNotEmpty ? _showSortOptions : null,
-          ),
-          IconButton(
-            icon: const Icon(Icons.category),
-            tooltip: 'Filter by category',
-            onPressed: _quizzes.isNotEmpty ? _showCategoryOptions : null,
-          ),
-          PopupMenuButton<FilterOption>(
-            tooltip: 'Filter quizzes',
-            icon: Icon(_getFilterIcon()),
-            onSelected: _changeFilter,
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: FilterOption.all,
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.list,
-                      color: _currentFilter == FilterOption.all 
-                          ? themeProvider.primaryColor
-                          : null,
+          if (_quizzes.isNotEmpty) ...[
+            IconButton(
+              icon: const Icon(Icons.sort),
+              tooltip: 'Sort quizzes',
+              onPressed: _showSortOptions,
+            ),
+            IconButton(
+              icon: const Icon(Icons.filter_list),
+              tooltip: 'Filter quizzes',
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  builder: (context) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                          child: Text(
+                            'Filter Quizzes',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const Divider(),
+                        ListTile(
+                          leading: Icon(
+                            Icons.list,
+                            color: _currentFilter == FilterOption.all ? themeProvider.primaryColor : null,
+                          ),
+                          title: const Text('All Quizzes'),
+                          trailing: _currentFilter == FilterOption.all ? Icon(Icons.check, color: themeProvider.primaryColor) : null,
+                          onTap: () {
+                            _changeFilter(FilterOption.all);
+                            Navigator.pop(context);
+                          },
+                        ),
+                        ListTile(
+                          leading: Icon(
+                            Icons.favorite,
+                            color: _currentFilter == FilterOption.favorites ? Colors.red : null,
+                          ),
+                          title: const Text('Favorites'),
+                          trailing: _currentFilter == FilterOption.favorites ? const Icon(Icons.check, color: Colors.red) : null,
+                          onTap: () {
+                            _changeFilter(FilterOption.favorites);
+                            Navigator.pop(context);
+                          },
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                          child: Text(
+                            'Difficulty',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        ListTile(
+                          leading: Icon(
+                            Icons.circle,
+                            color: _currentFilter == FilterOption.easy ? Colors.green : Colors.green.withOpacity(0.5),
+                            size: 16,
+                          ),
+                          title: const Text('Easy'),
+                          trailing: _currentFilter == FilterOption.easy ? const Icon(Icons.check, color: Colors.green) : null,
+                          onTap: () {
+                            _changeFilter(FilterOption.easy);
+                            Navigator.pop(context);
+                          },
+                        ),
+                        ListTile(
+                          leading: Icon(
+                            Icons.circle,
+                            color: _currentFilter == FilterOption.medium ? Colors.orange : Colors.orange.withOpacity(0.5),
+                            size: 16,
+                          ),
+                          title: const Text('Medium'),
+                          trailing: _currentFilter == FilterOption.medium ? const Icon(Icons.check, color: Colors.orange) : null,
+                          onTap: () {
+                            _changeFilter(FilterOption.medium);
+                            Navigator.pop(context);
+                          },
+                        ),
+                        ListTile(
+                          leading: Icon(
+                            Icons.circle,
+                            color: _currentFilter == FilterOption.hard ? Colors.red : Colors.red.withOpacity(0.5),
+                            size: 16,
+                          ),
+                          title: const Text('Hard'),
+                          trailing: _currentFilter == FilterOption.hard ? const Icon(Icons.check, color: Colors.red) : null,
+                          onTap: () {
+                            _changeFilter(FilterOption.hard);
+                            Navigator.pop(context);
+                          },
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                          child: Text(
+                            'Categories',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          height: 48,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                            itemCount: _categories.length,
+                            itemBuilder: (context, index) {
+                              final category = _categories[index];
+                              final isSelected = _selectedCategory == category && _currentFilter == FilterOption.category;
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                child: FilterChip(
+                                  avatar: Icon(
+                                    _getCategoryIcon(category),
+                                    size: 18,
+                                    color: isSelected ? Colors.white : null,
+                                  ),
+                                  label: Text(category),
+                                  selected: isSelected,
+                                  onSelected: (selected) {
+                                    Navigator.pop(context);
+                                    _filterByCategory(selected ? category : 'All Categories');
+                                  },
+                                  backgroundColor: Colors.grey.shade200,
+                                  selectedColor: themeProvider.primaryColor,
+                                  checkmarkColor: Colors.white,
+                                  labelStyle: TextStyle(
+                                    color: isSelected ? Colors.white : null,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    const Text('All Quizzes'),
-                    if (_currentFilter == FilterOption.all)
-                      Icon(Icons.check, color: themeProvider.primaryColor),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: FilterOption.favorites,
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.favorite,
-                      color: _currentFilter == FilterOption.favorites 
-                          ? Colors.red
-                          : null,
-                    ),
-                    const SizedBox(width: 8),
-                    const Text('Favorites'),
-                    if (_currentFilter == FilterOption.favorites)
-                      const Icon(Icons.check, color: Colors.red),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem(
-                enabled: false,
-                child: Text('Difficulty'),
-              ),
-              PopupMenuItem(
-                value: FilterOption.easy,
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.circle,
-                      color: _currentFilter == FilterOption.easy 
-                          ? Colors.green
-                          : Colors.green.withOpacity(0.5),
-                      size: 16,
-                    ),
-                    const SizedBox(width: 8),
-                    const Text('Easy'),
-                    if (_currentFilter == FilterOption.easy)
-                      const Icon(Icons.check, color: Colors.green),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: FilterOption.medium,
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.circle,
-                      color: _currentFilter == FilterOption.medium 
-                          ? Colors.orange
-                          : Colors.orange.withOpacity(0.5),
-                      size: 16,
-                    ),
-                    const SizedBox(width: 8),
-                    const Text('Medium'),
-                    if (_currentFilter == FilterOption.medium)
-                      const Icon(Icons.check, color: Colors.orange),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: FilterOption.hard,
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.circle,
-                      color: _currentFilter == FilterOption.hard 
-                          ? Colors.red
-                          : Colors.red.withOpacity(0.5),
-                      size: 16,
-                    ),
-                    const SizedBox(width: 8),
-                    const Text('Hard'),
-                    if (_currentFilter == FilterOption.hard)
-                      const Icon(Icons.check, color: Colors.red),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          IconButton(
-            icon: const Icon(Icons.bar_chart),
-            tooltip: 'Statistics',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const StatisticsScreen(),
-                ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.people),
-            tooltip: 'Multiplayer',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const MultiplayerScreen(),
-                ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            tooltip: 'Settings',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const SettingsScreen(),
-                ),
-              );
-            },
-          ),
+                  ),
+                );
+              },
+            ),
+          ],
         ],
       ),
       body: _isLoading
@@ -726,77 +814,152 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Card(
                               margin: const EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 8),
-                              child: ListTile(
-                                leading: quiz.isFavorite
-                                    ? const Icon(Icons.favorite, color: Colors.red)
-                                    : null,
-                                title: Row(
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Expanded(
-                                      child: Text(
-                                        quiz.title,
-                                        style: const TextStyle(
-                                            fontSize: 18, fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: _getDifficultyColor(quiz.difficulty),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Text(
-                                        quiz.difficulty.name,
-                                        style: const TextStyle(color: Colors.white, fontSize: 12),
-                                      ),
+                                      height: 6,
+                                      color: _getDifficultyColor(quiz.difficulty),
                                     ),
-                                  ],
-                                ),
-                                subtitle: Text(quiz.description),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          _getCategoryIcon(quiz.category),
-                                          size: 16,
-                                          color: Colors.grey,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          quiz.category,
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey,
+                                    Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  quiz.title,
+                                                  style: const TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                              IconButton(
+                                                icon: Icon(
+                                                  quiz.isFavorite
+                                                      ? Icons.favorite
+                                                      : Icons.favorite_border,
+                                                  color: quiz.isFavorite ? Colors.red : Colors.grey,
+                                                ),
+                                                onPressed: () => _toggleFavorite(quiz),
+                                              ),
+                                              IconButton(
+                                                icon: const Icon(Icons.more_vert),
+                                                onPressed: () => _showQuizOptions(quiz),
+                                              ),
+                                            ],
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                    IconButton(
-                                      icon: Icon(
-                                        quiz.isFavorite
-                                            ? Icons.favorite
-                                            : Icons.favorite_border,
-                                        color: quiz.isFavorite ? Colors.red : null,
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            quiz.description,
+                                            style: TextStyle(
+                                              color: Colors.grey.shade600,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Row(
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: _getDifficultyColor(quiz.difficulty).withOpacity(0.1),
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  border: Border.all(
+                                                    color: _getDifficultyColor(quiz.difficulty).withOpacity(0.3),
+                                                    width: 1,
+                                                  ),
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.circle,
+                                                      size: 8,
+                                                      color: _getDifficultyColor(quiz.difficulty),
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      quiz.difficulty.name,
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: _getDifficultyColor(quiz.difficulty),
+                                                        fontWeight: FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.grey.shade100,
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  border: Border.all(
+                                                    color: Colors.grey.shade300,
+                                                    width: 1,
+                                                  ),
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    Icon(
+                                                      _getCategoryIcon(quiz.category),
+                                                      size: 12,
+                                                      color: Colors.grey.shade700,
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      quiz.category,
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors.grey.shade700,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const Spacer(),
+                                              ElevatedButton.icon(
+                                                icon: const Icon(Icons.play_arrow, size: 16),
+                                                label: const Text('Play'),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: themeProvider.primaryColor,
+                                                  foregroundColor: Colors.white,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(12),
+                                                  ),
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 6,
+                                                  ),
+                                                  minimumSize: const Size(80, 30),
+                                                  textStyle: const TextStyle(fontSize: 12),
+                                                ),
+                                                onPressed: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) => QuizScreen(quizId: quiz.id!),
+                                                    ),
+                                                  ).then((_) => _loadQuizzes());
+                                                },
+                                              ),
+                                            ],
+                                          ),
+                                        ],
                                       ),
-                                      onPressed: () => _toggleFavorite(quiz),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.more_vert),
-                                      onPressed: () => _showQuizOptions(quiz),
                                     ),
                                   ],
                                 ),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => QuizScreen(quizId: quiz.id!),
-                                    ),
-                                  ).then((_) => _loadQuizzes());
-                                },
                               ),
                             ),
                           );

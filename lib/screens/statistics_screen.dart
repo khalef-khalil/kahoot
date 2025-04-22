@@ -4,6 +4,10 @@ import '../database_helper.dart';
 import '../models.dart';
 import '../theme_provider.dart';
 import 'package:intl/intl.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:csv/csv.dart';
+import 'package:share_plus/share_plus.dart';
 
 class StatisticsScreen extends StatefulWidget {
   const StatisticsScreen({super.key});
@@ -179,6 +183,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
               });
               _loadData();
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.file_download),
+            tooltip: 'Export Results',
+            onPressed: _results.isNotEmpty ? _exportQuizResults : null,
           ),
           IconButton(
             icon: const Icon(Icons.delete),
@@ -595,6 +604,100 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
         return Colors.red;
       default:
         return Colors.grey;
+    }
+  }
+
+  Future<void> _exportQuizResults() async {
+    try {
+      // Show export options dialog
+      final choice = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Export Quiz Results'),
+          content: const Text('Choose an export format:'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, 'csv'),
+              child: const Text('CSV'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      );
+      
+      if (choice == 'csv') {
+        await _exportAsCSV();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: $e')),
+        );
+      }
+    }
+  }
+  
+  Future<void> _exportAsCSV() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+      
+      // Prepare CSV data
+      List<List<dynamic>> csvData = [
+        // CSV Header
+        ['Quiz Title', 'Date', 'Score', 'Total Questions', 'Percentage', 'Grade', 'Time (m:ss)']
+      ];
+      
+      // Add quiz results
+      for (var result in _results) {
+        csvData.add([
+          result.quizTitle ?? 'Unknown Quiz',
+          DateFormat('yyyy-MM-dd HH:mm').format(DateTime.parse(result.dateTaken)),
+          result.score,
+          result.totalQuestions,
+          result.getFormattedPercentage(),
+          result.getGrade(),
+          result.getFormattedTime(),
+        ]);
+      }
+      
+      // Convert to CSV string
+      String csv = const ListToCsvConverter().convert(csvData);
+      
+      // Get temp directory (doesn't require storage permission)
+      final directory = await getTemporaryDirectory();
+      final fileName = 'kahoot_results_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.csv';
+      final path = '${directory.path}/$fileName';
+      
+      // Write the file
+      final File file = File(path);
+      await file.writeAsString(csv);
+      
+      // Share the file using share_plus (doesn't require storage permission)
+      await Share.shareXFiles(
+        [XFile(path)], 
+        subject: 'Kahoot Quiz Results',
+        text: 'Here are my Kahoot quiz results!'
+      );
+      
+      setState(() {
+        _isLoading = false;
+      });
+      
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: $e')),
+        );
+      }
     }
   }
 } 

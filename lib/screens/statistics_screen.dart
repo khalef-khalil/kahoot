@@ -199,11 +199,112 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
   }
   
   Widget _buildSummaryTab() {
-    final totalAttempts = _stats['total_attempts'] ?? 0;
-    final avgScore = _stats['avg_score'] ?? 0.0;
-    final bestScore = _stats['best_score'] ?? 0.0;
-    final uniqueQuizzes = _stats['unique_quizzes'] ?? 0;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: _stats.isEmpty || (_stats['total_attempts'] ?? 0) == 0
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.quiz,
+                      size: 80,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'No Quiz Data Yet',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Complete some quizzes to see your statistics here.',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 30),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Back to Quizzes'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Performance Summary',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _buildStatCard(
+                  'Total Quizzes Taken',
+                  '${_stats['total_attempts']}',
+                  Icons.assignment_turned_in,
+                  Colors.blue,
+                ),
+                _buildStatCard(
+                  'Unique Quizzes Completed',
+                  '${_stats['unique_quizzes']}',
+                  Icons.playlist_add_check,
+                  Colors.green,
+                ),
+                _buildStatCard(
+                  'Average Score',
+                  '${(_stats['avg_score'] * 100).toStringAsFixed(1)}%',
+                  Icons.score,
+                  Colors.orange,
+                ),
+                _buildStatCard(
+                  'Best Score',
+                  '${(_stats['best_score'] * 100).toStringAsFixed(1)}%',
+                  Icons.emoji_events,
+                  Colors.purple,
+                ),
+                _buildStatCard(
+                  'Average Quiz Time',
+                  _formatTime(_stats['avg_time'] ?? 0),
+                  Icons.timer,
+                  Colors.red,
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Grade Distribution',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _buildGradeDistribution(),
+              ],
+            ),
+    );
+  }
+  
+  String _formatTime(dynamic timeValue) {
+    double seconds = 0.0;
     
+    if (timeValue is int) {
+      seconds = timeValue.toDouble();
+    } else if (timeValue is double) {
+      seconds = timeValue;
+    }
+    
+    final minutes = (seconds / 60).floor();
+    final remainingSeconds = (seconds % 60).floor();
+    return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
+  
+  Widget _buildGradeDistribution() {
     // Calculate grade distribution
     Map<String, int> gradeDistribution = {
       'A': 0,
@@ -217,91 +318,35 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
       gradeDistribution[result.getGrade()] = (gradeDistribution[result.getGrade()] ?? 0) + 1;
     }
     
-    return totalAttempts == 0
-        ? const Center(
-            child: Text(
-              'No quiz results yet. Try taking a quiz first!',
-              style: TextStyle(fontSize: 16),
-            ),
-          )
-        : SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Performance Summary',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _buildStatCard(
-                  'Total Quizzes Taken',
-                  totalAttempts.toString(),
-                  Icons.quiz,
-                  Colors.blue,
-                ),
-                _buildStatCard(
-                  'Unique Quizzes Completed',
-                  uniqueQuizzes.toString(),
-                  Icons.category,
-                  Colors.green,
-                ),
-                _buildStatCard(
-                  'Average Score',
-                  '${(avgScore * 100).toStringAsFixed(1)}%',
-                  Icons.score,
-                  Colors.orange,
-                ),
-                _buildStatCard(
-                  'Best Score',
-                  '${(bestScore * 100).toStringAsFixed(1)}%',
-                  Icons.emoji_events,
-                  Colors.purple,
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Grade Distribution',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16.0),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8.0),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.2),
-                        spreadRadius: 1,
-                        blurRadius: 5,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildGradeItem('A', gradeDistribution['A'] ?? 0, totalAttempts, Colors.green),
-                          _buildGradeItem('B', gradeDistribution['B'] ?? 0, totalAttempts, Colors.lightGreen),
-                          _buildGradeItem('C', gradeDistribution['C'] ?? 0, totalAttempts, Colors.yellow),
-                          _buildGradeItem('D', gradeDistribution['D'] ?? 0, totalAttempts, Colors.orange),
-                          _buildGradeItem('F', gradeDistribution['F'] ?? 0, totalAttempts, Colors.red),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            spreadRadius: 1,
+            blurRadius: 5,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildGradeItem('A', gradeDistribution['A'] ?? 0, _stats['total_attempts'] ?? 0, Colors.green),
+              _buildGradeItem('B', gradeDistribution['B'] ?? 0, _stats['total_attempts'] ?? 0, Colors.lightGreen),
+              _buildGradeItem('C', gradeDistribution['C'] ?? 0, _stats['total_attempts'] ?? 0, Colors.yellow),
+              _buildGradeItem('D', gradeDistribution['D'] ?? 0, _stats['total_attempts'] ?? 0, Colors.orange),
+              _buildGradeItem('F', gradeDistribution['F'] ?? 0, _stats['total_attempts'] ?? 0, Colors.red),
+            ],
+          ),
+        ],
+      ),
+    );
   }
   
   Widget _buildGradeItem(String grade, int count, int total, Color color) {
@@ -388,92 +433,168 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
             itemCount: _results.length,
             itemBuilder: (context, index) {
               final result = _results[index];
-              final date = DateTime.parse(result.dateTaken);
-              final formattedDate = DateFormat('MMM d, yyyy - h:mm a').format(date);
-              
-              return Dismissible(
-                key: Key(result.id.toString()),
-                background: Container(
-                  color: Colors.red,
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 20),
-                  child: const Icon(
-                    Icons.delete,
-                    color: Colors.white,
-                  ),
-                ),
-                direction: DismissDirection.endToStart,
-                confirmDismiss: (direction) async {
-                  return await showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Delete Result'),
-                      content: const Text('Are you sure you want to delete this result?'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          child: const Text('Delete'),
-                          style: TextButton.styleFrom(foregroundColor: Colors.red),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                onDismissed: (direction) async {
-                  try {
-                    await _databaseHelper.deleteQuizResult(result.id!);
-                    _loadData();
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Result deleted')),
-                      );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Failed to delete result: $e')),
-                      );
-                    }
-                  }
-                },
-                child: Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: ListTile(
-                    title: Text(
-                      result.quizTitle ?? 'Unknown Quiz',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(formattedDate),
-                        Text('Score: ${result.score}/${result.totalQuestions} (${result.getFormattedPercentage()})'),
-                      ],
-                    ),
-                    trailing: Container(
-                      width: 40,
-                      height: 40,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: result.percentage >= 0.6 ? Colors.green : Colors.red,
-                      ),
-                      child: Text(
-                        result.getGrade(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
+              return _buildHistoryItem(result);
             },
           );
+  }
+
+  Widget _buildHistoryItem(QuizResult result) {
+    final formattedDate = DateFormat('MMM d, yyyy • h:mm a').format(DateTime.parse(result.dateTaken));
+    final gradeColor = _getGradeColor(result.getGrade());
+    
+    return Dismissible(
+      key: Key(result.id.toString()),
+      background: Container(
+        color: Colors.red,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20.0),
+        child: const Icon(Icons.delete, color: Colors.white),
+      ),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (direction) async {
+        return await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Delete Result'),
+            content: const Text('Are you sure you want to delete this quiz result?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+        );
+      },
+      onDismissed: (direction) async {
+        try {
+          await _databaseHelper.deleteQuizResult(result.id!);
+          _loadData();
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to delete result: $e')),
+            );
+          }
+        }
+      },
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        elevation: 2.0,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      result.quizTitle ?? 'Unknown Quiz',
+                      style: const TextStyle(
+                        fontSize: 18.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+                    decoration: BoxDecoration(
+                      color: gradeColor,
+                      borderRadius: BorderRadius.circular(20.0),
+                    ),
+                    child: Text(
+                      result.getGrade(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8.0),
+              Row(
+                children: [
+                  const Icon(Icons.calendar_today, size: 14.0, color: Colors.grey),
+                  const SizedBox(width: 4.0),
+                  Text(
+                    formattedDate,
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14.0,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8.0),
+              Row(
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        const Icon(Icons.question_answer, size: 14.0, color: Colors.grey),
+                        const SizedBox(width: 4.0),
+                        Text(
+                          '${result.score}/${result.totalQuestions} correct',
+                          style: const TextStyle(fontSize: 14.0),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        const Icon(Icons.score, size: 14.0, color: Colors.grey),
+                        const SizedBox(width: 4.0),
+                        Text(
+                          result.getFormattedPercentage(),
+                          style: const TextStyle(fontSize: 14.0),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8.0),
+              Row(
+                children: [
+                  const Icon(Icons.timer, size: 14.0, color: Colors.grey),
+                  const SizedBox(width: 4.0),
+                  Text(
+                    'Time: ${result.getFormattedTime()}',
+                    style: const TextStyle(fontSize: 14.0),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _getGradeColor(String grade) {
+    switch (grade) {
+      case 'A':
+        return Colors.green;
+      case 'B':
+        return Colors.lightGreen;
+      case 'C':
+        return Colors.yellow;
+      case 'D':
+        return Colors.orange;
+      case 'F':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 } 

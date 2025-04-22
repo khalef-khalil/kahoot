@@ -25,20 +25,24 @@
 
 ## Quiz Experience
 - Countdown timer for each question
+- Total quiz timer to track completion time
 - Progress tracking through quiz
 - Color-coded answer buttons (Kahoot style)
 - Immediate feedback on correct/incorrect answers
 - Score tracking and final results screen
 - Automatic saving of quiz results
+- Display of total time spent on quiz completion
 
 ## Statistics & History
 - Performance summary dashboard
 - Quiz history with dates and scores
 - Grade distribution visualization
 - Track best and average scores
+- Average quiz completion time tracking
 - Swipe-to-delete individual history entries
 - Clear all history option
 - Performance metrics (total quizzes, unique quizzes, etc.)
+- Detailed time information for each quiz attempt
 
 ## Settings
 - Theme selector with multiple color options
@@ -50,4 +54,5 @@
 - Cascading delete for quizzes and related data
 - Update functionality for all quiz components
 - Duplicate functionality for entire quizzes
-- Quiz results and statistics tracking 
+- Quiz results and statistics tracking
+- Quiz completion time tracking 

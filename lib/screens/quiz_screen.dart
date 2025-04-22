@@ -24,6 +24,10 @@ class _QuizScreenState extends State<QuizScreen> {
   Timer? _timer;
   int _timeLeft = 0;
   bool _quizFinished = false;
+  
+  // Total quiz time tracking
+  int _totalQuizTime = 0;
+  Timer? _quizTimeTimer;
 
   @override
   void initState() {
@@ -51,12 +55,24 @@ class _QuizScreenState extends State<QuizScreen> {
       
       if (_questions.isNotEmpty) {
         _startTimer();
+        _startQuizTimeTracking();
       }
       
       setState(() {
         _isLoading = false;
       });
     }
+  }
+
+  void _startQuizTimeTracking() {
+    // Start a timer to track the total quiz time
+    _quizTimeTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      _totalQuizTime++;
+    });
+  }
+
+  void _stopQuizTimeTracking() {
+    _quizTimeTimer?.cancel();
   }
 
   void _startTimer() {
@@ -91,6 +107,7 @@ class _QuizScreenState extends State<QuizScreen> {
       } else {
         // Quiz is finished
         _quizFinished = true;
+        _stopQuizTimeTracking();
         _saveQuizResult();
       }
     });
@@ -129,6 +146,7 @@ class _QuizScreenState extends State<QuizScreen> {
         'total_questions': _questions.length,
         'percentage': percentage,
         'date_taken': DateTime.now().toIso8601String(),
+        'total_time': _totalQuizTime, // Save the total time
       });
     } catch (e) {
       print('Failed to save quiz result: $e');
@@ -143,6 +161,7 @@ class _QuizScreenState extends State<QuizScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _quizTimeTimer?.cancel();
     super.dispose();
   }
 
@@ -178,6 +197,11 @@ class _QuizScreenState extends State<QuizScreen> {
               Text(
                 'Score: $_score / ${_questions.length}',
                 style: const TextStyle(fontSize: 20),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Time: ${_formatTime(_totalQuizTime)}',
+                style: const TextStyle(fontSize: 18),
               ),
               const SizedBox(height: 30),
               ElevatedButton(
@@ -310,5 +334,11 @@ class _QuizScreenState extends State<QuizScreen> {
         ),
       ),
     );
+  }
+
+  String _formatTime(int seconds) {
+    final minutes = (seconds / 60).floor();
+    final remainingSeconds = seconds % 60;
+    return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 } 

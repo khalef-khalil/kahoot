@@ -20,7 +20,7 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'kahoot.db');
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDb,
       onUpgrade: _onUpgrade,
     );
@@ -48,6 +48,16 @@ class DatabaseHelper {
       
       if (!columnExists) {
         await db.execute('ALTER TABLE quizzes ADD COLUMN is_favorite INTEGER DEFAULT 0');
+      }
+    }
+    
+    if (oldVersion < 4) {
+      // Add total_time column to quiz_results table if it doesn't exist
+      var columns = await db.rawQuery('PRAGMA table_info(quiz_results)');
+      bool columnExists = columns.any((column) => column['name'] == 'total_time');
+      
+      if (!columnExists) {
+        await db.execute('ALTER TABLE quiz_results ADD COLUMN total_time INTEGER DEFAULT NULL');
       }
     }
   }
@@ -94,6 +104,7 @@ class DatabaseHelper {
         total_questions INTEGER,
         percentage REAL,
         date_taken TEXT,
+        total_time INTEGER,
         FOREIGN KEY (quiz_id) REFERENCES quizzes(id)
       )
     ''');
@@ -336,37 +347,47 @@ class DatabaseHelper {
   }
   
   Future<Map<String, dynamic>> getQuizResultStats() async {
-    await ensureQuizResultsTableExists();
     Database db = await database;
     
-    // Get total number of quiz attempts
-    final totalAttemptsResult = await db.rawQuery('SELECT COUNT(*) AS count FROM quiz_results');
-    final totalAttempts = Sqflite.firstIntValue(totalAttemptsResult) ?? 0;
+    // Get total attempts
+    final totalResults = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM quiz_results')
+    ) ?? 0;
     
-    // Default values in case there are no results
-    double avgScore = 0.0;
-    double bestScore = 0.0;
-    int uniqueQuizzes = 0;
+    // Get average score percentage
+    final avgPercentageResult = await db.rawQuery(
+      'SELECT AVG(percentage) as avg_percentage FROM quiz_results'
+    );
+    final avgPercentage = avgPercentageResult.isNotEmpty ? 
+      avgPercentageResult.first['avg_percentage'] ?? 0.0 : 0.0;
     
-    if (totalAttempts > 0) {
-      // Get average score percentage
-      final avgScoreResult = await db.rawQuery('SELECT AVG(percentage) AS avg_score FROM quiz_results');
-      avgScore = avgScoreResult.first['avg_score'] as double? ?? 0.0;
-      
-      // Get best score
-      final bestScoreResult = await db.rawQuery('SELECT MAX(percentage) AS best_score FROM quiz_results');
-      bestScore = bestScoreResult.first['best_score'] as double? ?? 0.0;
-      
-      // Get total quizzes taken
-      final uniqueQuizzesResult = await db.rawQuery('SELECT COUNT(DISTINCT quiz_id) AS count FROM quiz_results');
-      uniqueQuizzes = Sqflite.firstIntValue(uniqueQuizzesResult) ?? 0;
-    }
+    // Get best score percentage
+    final bestScoreResult = await db.rawQuery(
+      'SELECT MAX(percentage) as best_percentage FROM quiz_results'
+    );
+    final bestScore = bestScoreResult.isNotEmpty ? 
+      bestScoreResult.first['best_percentage'] ?? 0.0 : 0.0;
+    
+    // Get number of unique quizzes taken
+    final uniqueQuizzesResult = await db.rawQuery(
+      'SELECT COUNT(DISTINCT quiz_id) as unique_count FROM quiz_results'
+    );
+    final uniqueQuizzes = uniqueQuizzesResult.isNotEmpty ? 
+      uniqueQuizzesResult.first['unique_count'] ?? 0 : 0;
+    
+    // Get average quiz time
+    final avgTimeResult = await db.rawQuery(
+      'SELECT AVG(total_time) as avg_time FROM quiz_results WHERE total_time IS NOT NULL'
+    );
+    final avgTime = avgTimeResult.isNotEmpty ? 
+      avgTimeResult.first['avg_time'] ?? 0 : 0;
     
     return {
-      'total_attempts': totalAttempts,
-      'avg_score': avgScore,
-      'best_score': bestScore,
+      'total_attempts': totalResults,
+      'avg_score': avgPercentage is int ? (avgPercentage as int).toDouble() : avgPercentage,
+      'best_score': bestScore is int ? (bestScore as int).toDouble() : bestScore,
       'unique_quizzes': uniqueQuizzes,
+      'avg_time': avgTime is int ? (avgTime as int).toDouble() : avgTime,
     };
   }
   

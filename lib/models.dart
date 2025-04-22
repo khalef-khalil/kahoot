@@ -118,6 +118,7 @@ class QuizResult {
   final int totalQuestions;
   final double percentage;
   final String dateTaken;
+  final int? totalTime; // Total time in seconds
   String? quizTitle; // For display purposes, not stored in database directly
 
   QuizResult({
@@ -127,6 +128,7 @@ class QuizResult {
     required this.totalQuestions,
     required this.percentage,
     required this.dateTaken,
+    this.totalTime,
     this.quizTitle,
   });
 
@@ -140,6 +142,7 @@ class QuizResult {
           ? (map['percentage'] as int).toDouble() 
           : map['percentage'],
       dateTaken: map['date_taken'],
+      totalTime: map['total_time'],
     );
   }
 
@@ -151,6 +154,7 @@ class QuizResult {
       'total_questions': totalQuestions,
       'percentage': percentage,
       'date_taken': dateTaken,
+      'total_time': totalTime,
     };
   }
   
@@ -166,5 +170,15 @@ class QuizResult {
     if (percentage >= 0.7) return 'C';
     if (percentage >= 0.6) return 'D';
     return 'F';
+  }
+  
+  // Format the total time for display
+  String getFormattedTime() {
+    if (totalTime == null) return 'N/A';
+    
+    final minutes = totalTime! ~/ 60;
+    final seconds = totalTime! % 60;
+    
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 } 

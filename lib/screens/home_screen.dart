@@ -19,18 +19,45 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final DatabaseHelper _databaseHelper = DatabaseHelper();
   List<Quiz> _quizzes = [];
+  List<Quiz> _filteredQuizzes = [];
   bool _isLoading = true;
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadQuizzes();
+    _searchController.addListener(_filterQuizzes);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_filterQuizzes);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _filterQuizzes() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        _filteredQuizzes = List.from(_quizzes);
+      } else {
+        _filteredQuizzes = _quizzes
+            .where((quiz) =>
+                quiz.title.toLowerCase().contains(query) ||
+                quiz.description.toLowerCase().contains(query))
+            .toList();
+      }
+    });
   }
 
   Future<void> _loadQuizzes() async {
     final quizzesMap = await _databaseHelper.getQuizzes();
     setState(() {
       _quizzes = quizzesMap.map((map) => Quiz.fromMap(map)).toList();
+      _filteredQuizzes = List.from(_quizzes);
       _isLoading = false;
     });
   }
@@ -161,10 +188,33 @@ class _HomeScreenState extends State<HomeScreen> {
     final themeProvider = Provider.of<ThemeProvider>(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kahoot Clone'),
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                decoration: const InputDecoration(
+                  hintText: 'Search quizzes...',
+                  hintStyle: TextStyle(color: Colors.white70),
+                  border: InputBorder.none,
+                ),
+                style: const TextStyle(color: Colors.white),
+                autofocus: true,
+              )
+            : const Text('Kahoot Clone'),
         backgroundColor: themeProvider.primaryColor,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: Icon(_isSearching ? Icons.close : Icons.search),
+            tooltip: _isSearching ? 'Cancel search' : 'Search quizzes',
+            onPressed: () {
+              setState(() {
+                _isSearching = !_isSearching;
+                if (!_isSearching) {
+                  _searchController.clear();
+                }
+              });
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.bar_chart),
             tooltip: 'Statistics',
@@ -213,52 +263,66 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 )
-              : ListView.builder(
-                  itemCount: _quizzes.length,
-                  itemBuilder: (context, index) {
-                    final quiz = _quizzes[index];
-                    return Dismissible(
-                      key: Key(quiz.id.toString()),
-                      background: Container(
-                        color: Colors.red,
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 20),
-                        child: const Icon(
-                          Icons.delete,
-                          color: Colors.white,
+              : Column(
+                  children: [
+                    if (_filteredQuizzes.isEmpty && !_quizzes.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Text(
+                          'No quizzes match your search',
+                          style: TextStyle(fontSize: 16),
                         ),
                       ),
-                      direction: DismissDirection.endToStart,
-                      confirmDismiss: (direction) async {
-                        _confirmDelete(quiz);
-                        return false; // Prevent automatic dismissal
-                      },
-                      child: Card(
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        child: ListTile(
-                          title: Text(
-                            quiz.title,
-                            style: const TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Text(quiz.description),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.more_vert),
-                            onPressed: () => _showQuizOptions(quiz),
-                          ),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => QuizScreen(quizId: quiz.id!),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: _filteredQuizzes.length,
+                        itemBuilder: (context, index) {
+                          final quiz = _filteredQuizzes[index];
+                          return Dismissible(
+                            key: Key(quiz.id.toString()),
+                            background: Container(
+                              color: Colors.red,
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 20),
+                              child: const Icon(
+                                Icons.delete,
+                                color: Colors.white,
                               ),
-                            ).then((_) => _loadQuizzes());
-                          },
-                        ),
+                            ),
+                            direction: DismissDirection.endToStart,
+                            confirmDismiss: (direction) async {
+                              _confirmDelete(quiz);
+                              return false; // Prevent automatic dismissal
+                            },
+                            child: Card(
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              child: ListTile(
+                                title: Text(
+                                  quiz.title,
+                                  style: const TextStyle(
+                                      fontSize: 18, fontWeight: FontWeight.bold),
+                                ),
+                                subtitle: Text(quiz.description),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.more_vert),
+                                  onPressed: () => _showQuizOptions(quiz),
+                                ),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => QuizScreen(quizId: quiz.id!),
+                                    ),
+                                  ).then((_) => _loadQuizzes());
+                                },
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -269,7 +333,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ).then((_) => _loadQuizzes());
         },
-        backgroundColor: Colors.purple,
+        backgroundColor: themeProvider.primaryColor,
         child: const Icon(Icons.add),
       ),
     );

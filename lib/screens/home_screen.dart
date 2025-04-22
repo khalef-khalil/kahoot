@@ -8,6 +8,9 @@ import 'create_quiz_screen.dart';
 import 'edit_quiz_screen.dart';
 import 'statistics_screen.dart';
 import 'settings_screen.dart';
+import '../file_utils.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 
 enum QuizSortOption {
   titleAsc,
@@ -253,13 +256,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
   
   Future<void> _duplicateQuiz(int quizId) async {
-    setState(() {
-      _isLoading = true;
-    });
-    
     try {
-      await _databaseHelper.duplicateQuiz(quizId);
-      
+      final newId = await _databaseHelper.duplicateQuiz(quizId);
+      _loadQuizzes();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Quiz duplicated successfully')),
@@ -271,9 +270,91 @@ class _HomeScreenState extends State<HomeScreen> {
           SnackBar(content: Text('Failed to duplicate quiz: $e')),
         );
       }
-    } finally {
+    }
+  }
+
+  Future<void> _exportQuiz(int quizId, String quizTitle) async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+      
+      final quizData = await _databaseHelper.exportQuizToJson(quizId);
+      await FileUtils.shareQuizAsJson(quizData, quizTitle);
+      
+      setState(() {
+        _isLoading = false;
+      });
+      
       if (mounted) {
-        _loadQuizzes();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Quiz exported successfully')),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to export quiz: $e')),
+        );
+      }
+    }
+  }
+  
+  Future<void> _importQuiz() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+      
+      // Open file picker
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+      
+      if (result != null && result.files.isNotEmpty) {
+        final file = File(result.files.first.path!);
+        
+        // Parse the JSON file
+        final quizData = await FileUtils.parseQuizJsonFile(file);
+        
+        if (quizData != null) {
+          // Import the quiz
+          final newQuizId = await _databaseHelper.importQuizFromJson(quizData);
+          
+          // Reload quizzes
+          _loadQuizzes();
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Quiz imported successfully')),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Invalid quiz file format')),
+            );
+          }
+        }
+      }
+      
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to import quiz: $e')),
+        );
       }
     }
   }
@@ -358,6 +439,14 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           ListTile(
+            leading: const Icon(Icons.share),
+            title: const Text('Export Quiz'),
+            onTap: () {
+              Navigator.pop(context);
+              _exportQuiz(quiz.id!, quiz.title);
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.delete, color: Colors.red),
             title: const Text('Delete Quiz', style: TextStyle(color: Colors.red)),
             onTap: () {
@@ -401,6 +490,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
               });
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.download),
+            tooltip: 'Import Quiz',
+            onPressed: _importQuiz,
           ),
           IconButton(
             icon: const Icon(Icons.sort),

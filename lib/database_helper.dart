@@ -517,4 +517,103 @@ class DatabaseHelper {
       whereArgs: [1],
     );
   }
+  
+  // Export a quiz to JSON format with all its questions and options
+  Future<Map<String, dynamic>> exportQuizToJson(int quizId) async {
+    // Get the quiz
+    final quizMap = await getQuiz(quizId);
+    if (quizMap == null) {
+      throw Exception('Quiz not found');
+    }
+    
+    // Get all questions for this quiz
+    final questionsMap = await getQuestionsByQuiz(quizId);
+    
+    // Create a list to hold all questions with their options
+    List<Map<String, dynamic>> questionsWithOptions = [];
+    
+    // For each question, get its options
+    for (var questionMap in questionsMap) {
+      final questionId = questionMap['id'];
+      final optionsMap = await getOptionsByQuestion(questionId);
+      
+      // Create a question object with its options
+      final questionWithOptions = {
+        ...questionMap,
+        'options': optionsMap,
+      };
+      
+      questionsWithOptions.add(questionWithOptions);
+    }
+    
+    // Create the final quiz object with all data
+    final exportedQuiz = {
+      'quiz': quizMap,
+      'questions': questionsWithOptions,
+    };
+    
+    return exportedQuiz;
+  }
+  
+  // Import a quiz from JSON format
+  Future<int> importQuizFromJson(Map<String, dynamic> jsonData) async {
+    Database db = await database;
+    
+    // Begin a transaction to ensure data consistency
+    return await db.transaction((txn) async {
+      try {
+        // Extract quiz data
+        final quizData = Map<String, dynamic>.from(jsonData['quiz']);
+        
+        // Remove the id to create a new quiz
+        quizData.remove('id');
+        
+        // Add "(Imported)" to the title
+        quizData['title'] = '${quizData['title']} (Imported)';
+        
+        // Insert the quiz
+        final newQuizId = await txn.insert('quizzes', quizData);
+        
+        // Extract questions data
+        final questionsList = List<Map<String, dynamic>>.from(
+          jsonData['questions'].map((q) => Map<String, dynamic>.from(q))
+        );
+        
+        // Insert each question and its options
+        for (var questionData in questionsList) {
+          // Extract options before modifying the question data
+          final optionsList = List<Map<String, dynamic>>.from(
+            questionData['options'].map((o) => Map<String, dynamic>.from(o))
+          );
+          
+          // Remove the id and options from question data
+          questionData.remove('id');
+          questionData.remove('options');
+          
+          // Set the new quiz id
+          questionData['quiz_id'] = newQuizId;
+          
+          // Insert the question
+          final newQuestionId = await txn.insert('questions', questionData);
+          
+          // Insert each option for this question
+          for (var optionData in optionsList) {
+            // Remove the id
+            optionData.remove('id');
+            
+            // Set the new question id
+            optionData['question_id'] = newQuestionId;
+            
+            // Insert the option
+            await txn.insert('options', optionData);
+          }
+        }
+        
+        return newQuizId;
+      } catch (e) {
+        print('Error importing quiz: $e');
+        rethrow;
+      }
+    });
+  }
 } 

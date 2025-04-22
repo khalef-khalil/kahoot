@@ -8,6 +8,8 @@
 - Confirmation dialog before quiz deletion
 - Edit existing quizzes
 - Duplicate quizzes with all questions and options
+- Export quizzes to JSON format for sharing
+- Import quizzes from JSON files
 - Easy-access quiz menu with bottom sheet
 - Quick access to statistics and settings
 - Search and filter quizzes by title or description

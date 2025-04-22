@@ -14,7 +14,9 @@
 - Sort quizzes by title (A-Z/Z-A) or creation order (newest/oldest)
 - Mark quizzes as favorites and filter by favorites
 - Filter quizzes by difficulty level (Easy, Medium, Hard)
+- Filter quizzes by categories with intuitive icons
 - Visual difficulty indicators with color coding
+- Category display with appropriate icons
 
 ## Quiz Creation & Editing
 - Add title and description for quizzes
@@ -25,6 +27,8 @@
 - Edit existing questions and options
 - Delete questions from quizzes
 - Set difficulty level for quizzes (Easy, Medium, Hard)
+- Categorize quizzes with predefined categories
+- Visual category selection with intuitive icons
 
 ## Quiz Experience
 - Countdown timer for each question
@@ -59,4 +63,5 @@
 - Duplicate functionality for entire quizzes
 - Quiz results and statistics tracking
 - Quiz completion time tracking
-- Difficulty level support for quizzes 
+- Difficulty level support for quizzes
+- Category support for better organization 

@@ -20,7 +20,7 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'kahoot.db');
     return await openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: _createDb,
       onUpgrade: _onUpgrade,
     );
@@ -70,6 +70,16 @@ class DatabaseHelper {
         await db.execute('ALTER TABLE quizzes ADD COLUMN difficulty TEXT DEFAULT "Medium"');
       }
     }
+    
+    if (oldVersion < 6) {
+      // Add category column to quizzes table if it doesn't exist
+      var columns = await db.rawQuery('PRAGMA table_info(quizzes)');
+      bool columnExists = columns.any((column) => column['name'] == 'category');
+      
+      if (!columnExists) {
+        await db.execute('ALTER TABLE quizzes ADD COLUMN category TEXT DEFAULT "General"');
+      }
+    }
   }
 
   Future<void> _createDb(Database db, int version) async {
@@ -80,7 +90,8 @@ class DatabaseHelper {
         title TEXT,
         description TEXT,
         is_favorite INTEGER DEFAULT 0,
-        difficulty TEXT DEFAULT "Medium"
+        difficulty TEXT DEFAULT "Medium",
+        category TEXT DEFAULT "General"
       )
     ''');
 
@@ -425,6 +436,7 @@ class DatabaseHelper {
       'title': 'Sample Quiz',
       'description': 'A sample quiz to test the app',
       'difficulty': 'Easy',
+      'category': 'Technology',
     });
 
     // Insert sample questions

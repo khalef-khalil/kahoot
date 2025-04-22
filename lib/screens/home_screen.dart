@@ -22,6 +22,7 @@ enum FilterOption {
   easy,
   medium,
   hard,
+  category,
 }
 
 class HomeScreen extends StatefulWidget {
@@ -40,6 +41,9 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   QuizSortOption _currentSortOption = QuizSortOption.titleAsc;
   FilterOption _currentFilter = FilterOption.all;
+  String _selectedCategory = 'All Categories';
+  
+  List<String> _categories = ['All Categories'];
 
   @override
   void initState() {
@@ -82,6 +86,12 @@ class _HomeScreenState extends State<HomeScreen> {
           break;
         case FilterOption.hard:
           result = result.where((quiz) => quiz.difficulty == QuizDifficulty.hard).toList();
+          break;
+        case FilterOption.category:
+          // Only filter if not "All Categories"
+          if (_selectedCategory != 'All Categories') {
+            result = result.where((quiz) => quiz.category == _selectedCategory).toList();
+          }
           break;
         case FilterOption.all:
           // No additional filtering needed
@@ -217,6 +227,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final quizzesMap = await _databaseHelper.getQuizzes();
     setState(() {
       _quizzes = quizzesMap.map((map) => Quiz.fromMap(map)).toList();
+      
+      // Extract unique categories from quizzes
+      final uniqueCategories = _quizzes.map((q) => q.category).toSet().toList();
+      uniqueCategories.sort(); // Sort alphabetically
+      _categories = ['All Categories', ...uniqueCategories];
+      
       _filterQuizzes();
       _isLoading = false;
     });
@@ -390,6 +406,11 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.sort),
             tooltip: 'Sort quizzes',
             onPressed: _quizzes.isNotEmpty ? _showSortOptions : null,
+          ),
+          IconButton(
+            icon: const Icon(Icons.category),
+            tooltip: 'Filter by category',
+            onPressed: _quizzes.isNotEmpty ? _showCategoryOptions : null,
           ),
           PopupMenuButton<FilterOption>(
             tooltip: 'Filter quizzes',
@@ -605,6 +626,24 @@ class _HomeScreenState extends State<HomeScreen> {
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          _getCategoryIcon(quiz.category),
+                                          size: 16,
+                                          color: Colors.grey,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          quiz.category,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                     IconButton(
                                       icon: Icon(
                                         quiz.isFavorite
@@ -675,6 +714,100 @@ class _HomeScreenState extends State<HomeScreen> {
       case FilterOption.all:
       default:
         return Icons.filter_list;
+    }
+  }
+
+  void _filterByCategory(String category) {
+    setState(() {
+      _selectedCategory = category;
+      _currentFilter = category == 'All Categories' ? FilterOption.all : FilterOption.category;
+      _filterQuizzes();
+    });
+  }
+
+  void _showCategoryOptions() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => SizedBox(
+        height: MediaQuery.of(context).size.height * 0.7,
+        child: Column(
+          children: [
+            ListTile(
+              title: const Text('Filter by Category', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _categories.length,
+                itemBuilder: (context, index) {
+                  final category = _categories[index];
+                  final isSelected = _selectedCategory == category;
+                  return ListTile(
+                    leading: Icon(
+                      _getCategoryIcon(category),
+                      color: isSelected ? Theme.of(context).primaryColor : Colors.grey,
+                    ),
+                    title: Text(
+                      category,
+                      style: TextStyle(
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        color: isSelected ? Theme.of(context).primaryColor : null,
+                      ),
+                    ),
+                    trailing: isSelected ? Icon(Icons.check, color: Theme.of(context).primaryColor) : null,
+                    onTap: () {
+                      Navigator.pop(context);
+                      _filterByCategory(category);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  IconData _getCategoryIcon(String category) {
+    if (category == 'All Categories') {
+      return Icons.category;
+    }
+    
+    switch (category) {
+      case 'Technology':
+        return Icons.computer;
+      case 'Science':
+        return Icons.science;
+      case 'Mathematics':
+        return Icons.calculate;
+      case 'History':
+        return Icons.history_edu;
+      case 'Geography':
+        return Icons.public;
+      case 'Sports':
+        return Icons.sports;
+      case 'Entertainment':
+        return Icons.theater_comedy;
+      case 'Arts':
+        return Icons.palette;
+      case 'Literature':
+        return Icons.book;
+      case 'Music':
+        return Icons.music_note;
+      case 'Movies':
+        return Icons.movie;
+      case 'Television':
+        return Icons.tv;
+      case 'Food':
+        return Icons.restaurant;
+      case 'Language':
+        return Icons.translate;
+      case 'Other':
+        return Icons.category;
+      case 'General':
+      default:
+        return Icons.quiz;
     }
   }
 } 

@@ -14,15 +14,38 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _categoryController = TextEditingController(text: 'General');
   
   final List<Question> _questions = [];
   bool _isLoading = false;
   QuizDifficulty _selectedDifficulty = QuizDifficulty.medium;
+  
+  // Predefined categories for dropdown
+  final List<String> _categories = [
+    'General',
+    'Technology',
+    'Science',
+    'Mathematics',
+    'History',
+    'Geography',
+    'Sports',
+    'Entertainment',
+    'Arts',
+    'Literature',
+    'Music',
+    'Movies',
+    'Television',
+    'Food',
+    'Language',
+    'Other'
+  ];
+  String _selectedCategory = 'General';
 
   @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _categoryController.dispose();
     super.dispose();
   }
 
@@ -45,6 +68,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
           'title': _titleController.text,
           'description': _descriptionController.text,
           'difficulty': _selectedDifficulty.name,
+          'category': _selectedCategory,
         });
 
         // Save questions and options
@@ -302,6 +326,35 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                       });
                     },
                   ),
+                  const SizedBox(height: 16.0),
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      labelText: 'Category',
+                      border: OutlineInputBorder(),
+                    ),
+                    value: _selectedCategory,
+                    items: _categories.map((String category) {
+                      return DropdownMenuItem<String>(
+                        value: category,
+                        child: Row(
+                          children: [
+                            Icon(
+                              _getCategoryIcon(category),
+                              color: Colors.grey,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(category),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedCategory = value!;
+                      });
+                    },
+                  ),
                   const SizedBox(height: 24.0),
                   Row(
                     children: [
@@ -354,6 +407,44 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
         return Colors.orange;
       case QuizDifficulty.hard:
         return Colors.red;
+    }
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category) {
+      case 'Technology':
+        return Icons.computer;
+      case 'Science':
+        return Icons.science;
+      case 'Mathematics':
+        return Icons.calculate;
+      case 'History':
+        return Icons.history_edu;
+      case 'Geography':
+        return Icons.public;
+      case 'Sports':
+        return Icons.sports;
+      case 'Entertainment':
+        return Icons.theater_comedy;
+      case 'Arts':
+        return Icons.palette;
+      case 'Literature':
+        return Icons.book;
+      case 'Music':
+        return Icons.music_note;
+      case 'Movies':
+        return Icons.movie;
+      case 'Television':
+        return Icons.tv;
+      case 'Food':
+        return Icons.restaurant;
+      case 'Language':
+        return Icons.translate;
+      case 'Other':
+        return Icons.category;
+      case 'General':
+      default:
+        return Icons.quiz;
     }
   }
 

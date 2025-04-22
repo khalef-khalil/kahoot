@@ -29,6 +29,7 @@ class Quiz {
   final String description;
   final bool isFavorite;
   final QuizDifficulty difficulty;
+  final String category;
 
   Quiz({
     this.id,
@@ -36,6 +37,7 @@ class Quiz {
     required this.description,
     this.isFavorite = false,
     this.difficulty = QuizDifficulty.medium,
+    this.category = 'General',
   });
 
   factory Quiz.fromMap(Map<String, dynamic> map) {
@@ -47,6 +49,7 @@ class Quiz {
       difficulty: map['difficulty'] != null 
           ? QuizDifficultyExtension.fromString(map['difficulty'])
           : QuizDifficulty.medium,
+      category: map['category'] ?? 'General',
     );
   }
 
@@ -57,6 +60,7 @@ class Quiz {
       'description': description,
       'is_favorite': isFavorite ? 1 : 0,
       'difficulty': difficulty.name,
+      'category': category,
     };
   }
 
@@ -67,6 +71,7 @@ class Quiz {
     String? description,
     bool? isFavorite,
     QuizDifficulty? difficulty,
+    String? category,
   }) {
     return Quiz(
       id: id ?? this.id,
@@ -74,6 +79,7 @@ class Quiz {
       description: description ?? this.description,
       isFavorite: isFavorite ?? this.isFavorite,
       difficulty: difficulty ?? this.difficulty,
+      category: category ?? this.category,
     );
   }
 }

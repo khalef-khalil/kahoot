@@ -312,4 +312,44 @@ class Player {
       joinedAt: joinedAt ?? this.joinedAt,
     );
   }
+}
+
+class User {
+  final int? id;
+  final String username;
+  final String email;
+  final String passwordHash;
+  final DateTime createdAt;
+  final DateTime lastLogin;
+
+  User({
+    this.id,
+    required this.username,
+    required this.email,
+    required this.passwordHash,
+    required this.createdAt,
+    required this.lastLogin,
+  });
+
+  factory User.fromMap(Map<String, dynamic> map) {
+    return User(
+      id: map['id'],
+      username: map['username'],
+      email: map['email'],
+      passwordHash: map['password_hash'],
+      createdAt: DateTime.parse(map['created_at']),
+      lastLogin: DateTime.parse(map['last_login']),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'username': username,
+      'email': email,
+      'password_hash': passwordHash,
+      'created_at': createdAt.toIso8601String(),
+      'last_login': lastLogin.toIso8601String(),
+    };
+  }
 } 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../database_helper.dart';
 import '../models.dart';
+import '../auth_service.dart';
 
 class CreateQuizScreen extends StatefulWidget {
   const CreateQuizScreen({super.key});
@@ -11,6 +12,7 @@ class CreateQuizScreen extends StatefulWidget {
 
 class _CreateQuizScreenState extends State<CreateQuizScreen> {
   final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final AuthService _authService = AuthService();
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -49,33 +51,33 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
     super.dispose();
   }
 
-  Future<void> _saveQuiz() async {
-    if (_formKey.currentState!.validate()) {
-      if (_questions.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please add at least one question')),
-        );
-        return;
-      }
-
+  Future<bool> _saveQuiz() async {
+    if (_formKey.currentState!.validate() && _questions.isNotEmpty) {
       setState(() {
         _isLoading = true;
       });
-
+      
       try {
-        // Save quiz
+        // Get the current user ID
+        final userId = _authService.currentUser?.id;
+        if (userId == null) {
+          throw Exception('You must be logged in to create a quiz');
+        }
+        
+        // Create the quiz with user_id
         final quizId = await _databaseHelper.insertQuiz({
           'title': _titleController.text,
           'description': _descriptionController.text,
+          'user_id': userId,
           'difficulty': _selectedDifficulty.name,
           'category': _selectedCategory,
         });
-
-        // Save questions and options
+        
+        // Save questions
         for (var question in _questions) {
           question.quizId = quizId;
           final questionId = await _databaseHelper.insertQuestion(question.toMap());
-
+          
           // Save options for this question
           if (question.options != null) {
             for (var option in question.options!) {
@@ -84,26 +86,36 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
             }
           }
         }
-
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Quiz saved successfully')),
           );
-          Navigator.pop(context);
         }
+        
+        setState(() {
+          _isLoading = false;
+        });
+        
+        return true;
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Failed to save quiz: $e')),
           );
         }
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
+        setState(() {
+          _isLoading = false;
+        });
+        return false;
       }
+    } else if (_questions.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please add at least one question')),
+      );
+      return false;
+    } else {
+      return false;
     }
   }
 

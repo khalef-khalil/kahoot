@@ -1,23 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'screens/home_screen.dart';
+import 'screens/auth/login_screen.dart';
 import 'database_helper.dart';
 import 'theme_provider.dart';
+import 'auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
   // Initialize the database
   await DatabaseHelper().database;
+  
+  // Initialize auth service
+  final authService = AuthService();
+  final isLoggedIn = await authService.initialize();
+  
   runApp(
     ChangeNotifierProvider(
       create: (context) => ThemeProvider(),
-      child: const MyApp(),
+      child: MyApp(initialRoute: isLoggedIn ? '/home' : '/login'),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final String initialRoute;
+  
+  const MyApp({super.key, required this.initialRoute});
 
   // This widget is the root of your application.
   @override
@@ -27,7 +37,11 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Kahoot Clone',
       theme: themeProvider.currentTheme,
-      home: const HomeScreen(),
+      initialRoute: initialRoute,
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/home': (context) => const HomeScreen(),
+      },
       debugShowCheckedModeBanner: false,
     );
   }

@@ -12,6 +12,8 @@ import '../file_utils.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'multiplayer_screen.dart';
+import '../auth_service.dart';
+import 'auth/login_screen.dart';
 
 enum QuizSortOption {
   titleAsc,
@@ -38,6 +40,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final AuthService _authService = AuthService();
   List<Quiz> _quizzes = [];
   List<Quiz> _filteredQuizzes = [];
   bool _isLoading = true;
@@ -228,18 +231,47 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadQuizzes() async {
-    final quizzesMap = await _databaseHelper.getQuizzes();
     setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      // Only load quizzes for the current user
+      final userId = _authService.currentUser?.id;
+      
+      if (userId == null) {
+        // Handle the case where there's no logged-in user
+        Navigator.of(context).pushReplacementNamed('/login');
+        return;
+      }
+      
+      final quizzesMap = await _databaseHelper.getQuizzesByUser(userId);
       _quizzes = quizzesMap.map((map) => Quiz.fromMap(map)).toList();
       
-      // Extract unique categories from quizzes
-      final uniqueCategories = _quizzes.map((q) => q.category).toSet().toList();
-      uniqueCategories.sort(); // Sort alphabetically
-      _categories = ['All Categories', ...uniqueCategories];
+      // Extract all unique categories
+      _categories = ['All Categories'];
+      final uniqueCategories = <String>{};
+      for (var quiz in _quizzes) {
+        if (quiz.category.isNotEmpty) {
+          uniqueCategories.add(quiz.category);
+        }
+      }
+      _categories.addAll(uniqueCategories);
       
       _filterQuizzes();
-      _isLoading = false;
-    });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading quizzes: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   Future<void> _deleteQuiz(int quizId) async {
@@ -460,9 +492,18 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _logout() async {
+    await _authService.logout();
+    if (mounted) {
+      Navigator.of(context).pushReplacementNamed('/login');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final currentUser = _authService.currentUser;
+    
     return Scaffold(
       appBar: AppBar(
         title: _isSearching
@@ -476,7 +517,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: const TextStyle(color: Colors.white),
                 autofocus: true,
               )
-            : const Text('Kahoot Clone'),
+            : Text('${currentUser?.username}\'s Quizzes'),
         backgroundColor: themeProvider.primaryColor,
         foregroundColor: Colors.white,
         actions: [
@@ -648,25 +689,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _quizzes.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'No quizzes available',
-                        style: TextStyle(fontSize: 18),
-                      ),
-                      const SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: () async {
-                          await _databaseHelper.insertSampleData();
-                          _loadQuizzes();
-                        },
-                        child: const Text('Add Sample Quiz'),
-                      ),
-                    ],
-                  ),
-                )
+              ? _buildEmptyState()
               : Column(
                   children: [
                     if (_filteredQuizzes.isEmpty && _quizzes.isNotEmpty)
@@ -916,5 +939,35 @@ class _HomeScreenState extends State<HomeScreen> {
       default:
         return Icons.quiz;
     }
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.quiz, size: 80, color: Colors.grey),
+          const SizedBox(height: 16),
+          Text(
+            'Welcome, ${_authService.currentUser?.username ?? "User"}!',
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'No quizzes yet',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Create your first quiz by tapping the + button below',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
+    );
   }
 } 

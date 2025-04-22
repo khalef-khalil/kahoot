@@ -59,6 +59,15 @@
 - Theme selector with multiple color options
 - App information (version and developer)
 
+## User Authentication
+- User registration with username, email, and password
+- User login with username/email and password
+- Secure password hashing
+- Persistent login using shared preferences
+- User-specific quizzes and statistics
+- Logout functionality
+- User profile information display
+
 ## Multiplayer Mode
 - Host quizzes with unique session codes
 - Join existing quiz sessions with session codes

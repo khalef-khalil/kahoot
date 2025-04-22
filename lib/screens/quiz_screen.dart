@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../database_helper.dart';
 import '../models.dart';
+import '../auth_service.dart';
 
 class QuizScreen extends StatefulWidget {
   final int quizId;
@@ -14,6 +15,7 @@ class QuizScreen extends StatefulWidget {
 
 class _QuizScreenState extends State<QuizScreen> {
   final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final AuthService _authService = AuthService();
   Quiz? _quiz;
   List<Question> _questions = [];
   int _currentQuestionIndex = 0;
@@ -140,8 +142,15 @@ class _QuizScreenState extends State<QuizScreen> {
       // Make sure the quiz_results table exists
       await _databaseHelper.ensureQuizResultsTableExists();
       
+      // Get current user ID
+      final userId = _authService.currentUser?.id;
+      if (userId == null) {
+        throw Exception('You must be logged in to save quiz results');
+      }
+      
       await _databaseHelper.saveQuizResult({
         'quiz_id': widget.quizId,
+        'user_id': userId,
         'score': _score,
         'total_questions': _questions.length,
         'percentage': percentage,

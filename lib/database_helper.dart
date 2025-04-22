@@ -20,7 +20,7 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'kahoot.db');
     return await openDatabase(
       path,
-      version: 7,
+      version: 8,
       onCreate: _createDb,
       onUpgrade: _onUpgrade,
     );
@@ -105,18 +105,62 @@ class DatabaseHelper {
         )
       ''');
     }
+    
+    if (oldVersion < 8) {
+      // Add users table
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS users(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          username TEXT UNIQUE,
+          email TEXT UNIQUE,
+          password_hash TEXT,
+          created_at TEXT,
+          last_login TEXT
+        )
+      ''');
+      
+      // Add user_id column to quizzes table
+      var columns = await db.rawQuery('PRAGMA table_info(quizzes)');
+      bool columnExists = columns.any((column) => column['name'] == 'user_id');
+      
+      if (!columnExists) {
+        await db.execute('ALTER TABLE quizzes ADD COLUMN user_id INTEGER DEFAULT NULL');
+      }
+      
+      // Update existing quiz_results to include user_id
+      columns = await db.rawQuery('PRAGMA table_info(quiz_results)');
+      columnExists = columns.any((column) => column['name'] == 'user_id');
+      
+      if (!columnExists) {
+        await db.execute('ALTER TABLE quiz_results ADD COLUMN user_id INTEGER DEFAULT NULL');
+      }
+    }
   }
 
   Future<void> _createDb(Database db, int version) async {
-    // Create quizzes table
+    // Create users table
+    await db.execute('''
+      CREATE TABLE users(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE,
+        email TEXT UNIQUE,
+        password_hash TEXT,
+        created_at TEXT,
+        last_login TEXT
+      )
+    ''');
+
+    // Create quizzes table with user_id
     await db.execute('''
       CREATE TABLE quizzes(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
         title TEXT,
         description TEXT,
         is_favorite INTEGER DEFAULT 0,
         difficulty TEXT DEFAULT "Medium",
-        category TEXT DEFAULT "General"
+        category TEXT DEFAULT "General",
+        FOREIGN KEY (user_id) REFERENCES users(id)
       )
     ''');
 
@@ -147,12 +191,14 @@ class DatabaseHelper {
       CREATE TABLE quiz_results(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         quiz_id INTEGER,
+        user_id INTEGER,
         score INTEGER,
         total_questions INTEGER,
         percentage REAL,
         date_taken TEXT,
         total_time INTEGER,
-        FOREIGN KEY (quiz_id) REFERENCES quizzes(id)
+        FOREIGN KEY (quiz_id) REFERENCES quizzes(id),
+        FOREIGN KEY (user_id) REFERENCES users(id)
       )
     ''');
     
@@ -756,5 +802,125 @@ class DatabaseHelper {
     } while (!isUnique);
     
     return code;
+  }
+
+  // User Operations
+  Future<int> registerUser(Map<String, dynamic> user) async {
+    Database db = await database;
+    return await db.insert('users', user);
+  }
+  
+  Future<Map<String, dynamic>?> getUserByUsername(String username) async {
+    Database db = await database;
+    List<Map<String, dynamic>> result = await db.query(
+      'users',
+      where: 'username = ?',
+      whereArgs: [username],
+      limit: 1
+    );
+    return result.isNotEmpty ? result.first : null;
+  }
+  
+  Future<Map<String, dynamic>?> getUserByEmail(String email) async {
+    Database db = await database;
+    List<Map<String, dynamic>> result = await db.query(
+      'users',
+      where: 'email = ?',
+      whereArgs: [email],
+      limit: 1
+    );
+    return result.isNotEmpty ? result.first : null;
+  }
+  
+  Future<Map<String, dynamic>?> getUserById(int id) async {
+    Database db = await database;
+    List<Map<String, dynamic>> result = await db.query(
+      'users',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1
+    );
+    return result.isNotEmpty ? result.first : null;
+  }
+  
+  Future<int> updateUserLastLogin(int userId) async {
+    Database db = await database;
+    return await db.update(
+      'users',
+      {'last_login': DateTime.now().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [userId]
+    );
+  }
+  
+  // Quiz operations with user_id
+  Future<List<Map<String, dynamic>>> getQuizzesByUser(int userId) async {
+    Database db = await database;
+    return await db.query(
+      'quizzes',
+      where: 'user_id = ?',
+      whereArgs: [userId]
+    );
+  }
+  
+  // Quiz result operations with user_id
+  Future<List<Map<String, dynamic>>> getQuizResultsByUser(int userId) async {
+    await ensureQuizResultsTableExists();
+    Database db = await database;
+    return await db.query(
+      'quiz_results',
+      where: 'user_id = ?',
+      whereArgs: [userId],
+      orderBy: 'date_taken DESC'
+    );
+  }
+  
+  Future<Map<String, dynamic>> getQuizResultStatsByUser(int userId) async {
+    Database db = await database;
+    
+    // Get total attempts
+    final totalResults = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM quiz_results WHERE user_id = ?', [userId])
+    ) ?? 0;
+    
+    // Get average score percentage
+    final avgPercentageResult = await db.rawQuery(
+      'SELECT AVG(percentage) as avg_percentage FROM quiz_results WHERE user_id = ?',
+      [userId]
+    );
+    final avgPercentage = avgPercentageResult.isNotEmpty ? 
+      avgPercentageResult.first['avg_percentage'] ?? 0.0 : 0.0;
+    
+    // Get best score percentage
+    final bestScoreResult = await db.rawQuery(
+      'SELECT MAX(percentage) as best_percentage FROM quiz_results WHERE user_id = ?',
+      [userId]
+    );
+    final bestScore = bestScoreResult.isNotEmpty ? 
+      bestScoreResult.first['best_percentage'] ?? 0.0 : 0.0;
+    
+    // Get number of unique quizzes taken
+    final uniqueQuizzesResult = await db.rawQuery(
+      'SELECT COUNT(DISTINCT quiz_id) as unique_count FROM quiz_results WHERE user_id = ?',
+      [userId]
+    );
+    final uniqueQuizzes = uniqueQuizzesResult.isNotEmpty ? 
+      uniqueQuizzesResult.first['unique_count'] ?? 0 : 0;
+    
+    // Get average quiz time
+    final avgTimeResult = await db.rawQuery(
+      'SELECT AVG(total_time) as avg_time FROM quiz_results WHERE user_id = ? AND total_time IS NOT NULL',
+      [userId]
+    );
+    final avgTime = avgTimeResult.isNotEmpty ? 
+      avgTimeResult.first['avg_time'] ?? 0 : 0;
+    
+    return {
+      'total_attempts': totalResults,
+      'avg_score': avgPercentage is int ? (avgPercentage as int).toDouble() : avgPercentage,
+      'best_score': bestScore is int ? (bestScore as int).toDouble() : bestScore,
+      'unique_quizzes': uniqueQuizzes,
+      'avg_time': avgTime is int ? (avgTime as int).toDouble() : avgTime,
+    };
   }
 } 

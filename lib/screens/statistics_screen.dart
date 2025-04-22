@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:csv/csv.dart';
 import 'package:share_plus/share_plus.dart';
+import '../auth_service.dart';
 
 class StatisticsScreen extends StatefulWidget {
   const StatisticsScreen({super.key});
@@ -18,6 +19,7 @@ class StatisticsScreen extends StatefulWidget {
 
 class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerProviderStateMixin {
   final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final AuthService _authService = AuthService();
   bool _isLoading = true;
   List<QuizResult> _results = [];
   Map<String, dynamic> _stats = {};
@@ -46,10 +48,16 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
         print("Database initialization error: $e");
       }
 
-      // Try to load quiz results
+      // Get the current user ID
+      final userId = _authService.currentUser?.id;
+      if (userId == null) {
+        throw Exception('You must be logged in to view statistics');
+      }
+
+      // Try to load quiz results for the current user
       List<Map<String, dynamic>> resultsMap = [];
       try {
-        resultsMap = await _databaseHelper.getQuizResults();
+        resultsMap = await _databaseHelper.getQuizResultsByUser(userId);
       } catch (e) {
         print("Error getting quiz results: $e");
         // If we can't get results, just use an empty list
@@ -77,10 +85,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
         results.add(result);
       }
       
-      // Load stats
+      // Load stats for the current user
       Map<String, dynamic> stats = {};
       try {
-        stats = await _databaseHelper.getQuizResultStats();
+        stats = await _databaseHelper.getQuizResultStatsByUser(userId);
       } catch (e) {
         print("Error getting quiz stats: $e");
         // Default stats if we couldn't load them
@@ -100,7 +108,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No quiz results available yet. Try completing a quiz first.')),
+          SnackBar(content: Text('Error loading statistics: $e')),
         );
         setState(() {
           _isLoading = false;

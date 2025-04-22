@@ -9,6 +9,18 @@ import 'edit_quiz_screen.dart';
 import 'statistics_screen.dart';
 import 'settings_screen.dart';
 
+enum QuizSortOption {
+  titleAsc,
+  titleDesc,
+  newest,
+  oldest,
+}
+
+enum FilterOption {
+  all,
+  favorites,
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -23,6 +35,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
+  QuizSortOption _currentSortOption = QuizSortOption.titleAsc;
+  FilterOption _currentFilter = FilterOption.all;
 
   @override
   void initState() {
@@ -39,25 +53,154 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _filterQuizzes() {
-    final query = _searchController.text.toLowerCase();
     setState(() {
-      if (query.isEmpty) {
-        _filteredQuizzes = List.from(_quizzes);
-      } else {
-        _filteredQuizzes = _quizzes
+      // First filter by text query
+      final query = _searchController.text.toLowerCase();
+      var result = _quizzes;
+      
+      if (query.isNotEmpty) {
+        result = result
             .where((quiz) =>
                 quiz.title.toLowerCase().contains(query) ||
                 quiz.description.toLowerCase().contains(query))
             .toList();
       }
+      
+      // Then filter by favorites if needed
+      if (_currentFilter == FilterOption.favorites) {
+        result = result.where((quiz) => quiz.isFavorite).toList();
+      }
+      
+      _filteredQuizzes = result;
+      _sortQuizzes();
     });
+  }
+
+  void _toggleFavorite(Quiz quiz) async {
+    final newFavoriteStatus = !quiz.isFavorite;
+    
+    try {
+      await _databaseHelper.toggleQuizFavorite(quiz.id!, newFavoriteStatus);
+      
+      // Update local state
+      setState(() {
+        final index = _quizzes.indexWhere((q) => q.id == quiz.id);
+        if (index != -1) {
+          _quizzes[index] = quiz.copyWith(isFavorite: newFavoriteStatus);
+          _filterQuizzes(); // Reapply filters
+        }
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(newFavoriteStatus ? 'Added to favorites' : 'Removed from favorites'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update favorite status: $e')),
+      );
+    }
+  }
+
+  void _changeFilter(FilterOption filter) {
+    setState(() {
+      _currentFilter = filter;
+      _filterQuizzes();
+    });
+  }
+
+  void _sortQuizzes() {
+    switch (_currentSortOption) {
+      case QuizSortOption.titleAsc:
+        _filteredQuizzes.sort((a, b) => a.title.compareTo(b.title));
+        break;
+      case QuizSortOption.titleDesc:
+        _filteredQuizzes.sort((a, b) => b.title.compareTo(a.title));
+        break;
+      case QuizSortOption.newest:
+        // For this to work properly, we would need to add a 'dateCreated' field to the Quiz model
+        // For now, we'll use the id as a proxy for recency (higher id = more recent)
+        _filteredQuizzes.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+        break;
+      case QuizSortOption.oldest:
+        // Using id as proxy for creation date (lower id = older)
+        _filteredQuizzes.sort((a, b) => (a.id ?? 0).compareTo(b.id ?? 0));
+        break;
+    }
+  }
+
+  void _changeSort(QuizSortOption option) {
+    setState(() {
+      _currentSortOption = option;
+      _sortQuizzes();
+    });
+  }
+
+  void _showSortOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            title: const Text('Sort By', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          ListTile(
+            leading: const Icon(Icons.sort_by_alpha),
+            title: const Text('Title (A-Z)'),
+            trailing: _currentSortOption == QuizSortOption.titleAsc
+                ? const Icon(Icons.check, color: Colors.green)
+                : null,
+            onTap: () {
+              Navigator.pop(context);
+              _changeSort(QuizSortOption.titleAsc);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.sort_by_alpha),
+            title: const Text('Title (Z-A)'),
+            trailing: _currentSortOption == QuizSortOption.titleDesc
+                ? const Icon(Icons.check, color: Colors.green)
+                : null,
+            onTap: () {
+              Navigator.pop(context);
+              _changeSort(QuizSortOption.titleDesc);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.access_time),
+            title: const Text('Newest First'),
+            trailing: _currentSortOption == QuizSortOption.newest
+                ? const Icon(Icons.check, color: Colors.green)
+                : null,
+            onTap: () {
+              Navigator.pop(context);
+              _changeSort(QuizSortOption.newest);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.access_time_filled),
+            title: const Text('Oldest First'),
+            trailing: _currentSortOption == QuizSortOption.oldest
+                ? const Icon(Icons.check, color: Colors.green)
+                : null,
+            onTap: () {
+              Navigator.pop(context);
+              _changeSort(QuizSortOption.oldest);
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _loadQuizzes() async {
     final quizzesMap = await _databaseHelper.getQuizzes();
     setState(() {
       _quizzes = quizzesMap.map((map) => Quiz.fromMap(map)).toList();
-      _filteredQuizzes = List.from(_quizzes);
+      _filterQuizzes();
       _isLoading = false;
     });
   }
@@ -163,6 +306,17 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           ListTile(
+            leading: Icon(
+              quiz.isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: quiz.isFavorite ? Colors.red : null,
+            ),
+            title: Text(quiz.isFavorite ? 'Remove from Favorites' : 'Add to Favorites'),
+            onTap: () {
+              Navigator.pop(context);
+              _toggleFavorite(quiz);
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.copy),
             title: const Text('Duplicate Quiz'),
             onTap: () {
@@ -216,6 +370,54 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           IconButton(
+            icon: const Icon(Icons.sort),
+            tooltip: 'Sort quizzes',
+            onPressed: _quizzes.isNotEmpty ? _showSortOptions : null,
+          ),
+          PopupMenuButton<FilterOption>(
+            tooltip: 'Filter quizzes',
+            icon: Icon(_currentFilter == FilterOption.favorites 
+                ? Icons.favorite
+                : Icons.filter_list),
+            onSelected: _changeFilter,
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: FilterOption.all,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.list,
+                      color: _currentFilter == FilterOption.all 
+                          ? themeProvider.primaryColor
+                          : null,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('All Quizzes'),
+                    if (_currentFilter == FilterOption.all)
+                      Icon(Icons.check, color: themeProvider.primaryColor),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: FilterOption.favorites,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.favorite,
+                      color: _currentFilter == FilterOption.favorites 
+                          ? Colors.red
+                          : null,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('Favorites'),
+                    if (_currentFilter == FilterOption.favorites)
+                      const Icon(Icons.check, color: Colors.red),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          IconButton(
             icon: const Icon(Icons.bar_chart),
             tooltip: 'Statistics',
             onPressed: () {
@@ -265,12 +467,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 )
               : Column(
                   children: [
-                    if (_filteredQuizzes.isEmpty && !_quizzes.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.all(16.0),
+                    if (_filteredQuizzes.isEmpty && _quizzes.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
                         child: Text(
-                          'No quizzes match your search',
-                          style: TextStyle(fontSize: 16),
+                          _currentFilter == FilterOption.favorites
+                          ? 'No favorite quizzes yet'
+                          : 'No quizzes match your search',
+                          style: const TextStyle(fontSize: 16),
                         ),
                       ),
                     Expanded(
@@ -298,15 +502,32 @@ class _HomeScreenState extends State<HomeScreen> {
                               margin: const EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 8),
                               child: ListTile(
+                                leading: quiz.isFavorite
+                                    ? const Icon(Icons.favorite, color: Colors.red)
+                                    : null,
                                 title: Text(
                                   quiz.title,
                                   style: const TextStyle(
                                       fontSize: 18, fontWeight: FontWeight.bold),
                                 ),
                                 subtitle: Text(quiz.description),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.more_vert),
-                                  onPressed: () => _showQuizOptions(quiz),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(
+                                        quiz.isFavorite
+                                            ? Icons.favorite
+                                            : Icons.favorite_border,
+                                        color: quiz.isFavorite ? Colors.red : null,
+                                      ),
+                                      onPressed: () => _toggleFavorite(quiz),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.more_vert),
+                                      onPressed: () => _showQuizOptions(quiz),
+                                    ),
+                                  ],
                                 ),
                                 onTap: () {
                                   Navigator.push(

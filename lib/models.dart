@@ -2,11 +2,13 @@ class Quiz {
   final int? id;
   final String title;
   final String description;
+  final bool isFavorite;
 
   Quiz({
     this.id,
     required this.title,
     required this.description,
+    this.isFavorite = false,
   });
 
   factory Quiz.fromMap(Map<String, dynamic> map) {
@@ -14,6 +16,7 @@ class Quiz {
       id: map['id'],
       title: map['title'],
       description: map['description'],
+      isFavorite: map['is_favorite'] == 1,
     );
   }
 
@@ -22,7 +25,23 @@ class Quiz {
       'id': id,
       'title': title,
       'description': description,
+      'is_favorite': isFavorite ? 1 : 0,
     };
+  }
+
+  // Create a copy of this quiz with changes
+  Quiz copyWith({
+    int? id,
+    String? title,
+    String? description,
+    bool? isFavorite,
+  }) {
+    return Quiz(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      isFavorite: isFavorite ?? this.isFavorite,
+    );
   }
 }
 

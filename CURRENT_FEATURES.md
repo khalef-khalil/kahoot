@@ -11,6 +11,8 @@
 - Easy-access quiz menu with bottom sheet
 - Quick access to statistics and settings
 - Search and filter quizzes by title or description
+- Sort quizzes by title (A-Z/Z-A) or creation order (newest/oldest)
+- Mark quizzes as favorites and filter by favorites
 
 ## Quiz Creation & Editing
 - Add title and description for quizzes

@@ -20,7 +20,7 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'kahoot.db');
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _createDb,
       onUpgrade: _onUpgrade,
     );
@@ -40,6 +40,16 @@ class DatabaseHelper {
         )
       ''');
     }
+    
+    if (oldVersion < 3) {
+      // Add is_favorite column to quizzes table if it doesn't exist
+      var columns = await db.rawQuery('PRAGMA table_info(quizzes)');
+      bool columnExists = columns.any((column) => column['name'] == 'is_favorite');
+      
+      if (!columnExists) {
+        await db.execute('ALTER TABLE quizzes ADD COLUMN is_favorite INTEGER DEFAULT 0');
+      }
+    }
   }
 
   Future<void> _createDb(Database db, int version) async {
@@ -48,7 +58,8 @@ class DatabaseHelper {
       CREATE TABLE quizzes(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT,
-        description TEXT
+        description TEXT,
+        is_favorite INTEGER DEFAULT 0
       )
     ''');
 
@@ -439,5 +450,26 @@ class DatabaseHelper {
       'option_text': 'A cloud service',
       'is_correct': 0,
     });
+  }
+
+  // Toggle favorite status for a quiz
+  Future<int> toggleQuizFavorite(int quizId, bool isFavorite) async {
+    Database db = await database;
+    return await db.update(
+      'quizzes',
+      {'is_favorite': isFavorite ? 1 : 0},
+      where: 'id = ?',
+      whereArgs: [quizId],
+    );
+  }
+
+  // Get all favorite quizzes
+  Future<List<Map<String, dynamic>>> getFavoriteQuizzes() async {
+    Database db = await database;
+    return await db.query(
+      'quizzes',
+      where: 'is_favorite = ?',
+      whereArgs: [1],
+    );
   }
 } 

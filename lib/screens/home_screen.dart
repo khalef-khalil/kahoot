@@ -11,6 +11,7 @@ import 'settings_screen.dart';
 import '../file_utils.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import 'multiplayer_screen.dart';
 
 enum QuizSortOption {
   titleAsc,
@@ -614,6 +615,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (context) => const StatisticsScreen(),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.people),
+            tooltip: 'Multiplayer',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MultiplayerScreen(),
                 ),
               );
             },

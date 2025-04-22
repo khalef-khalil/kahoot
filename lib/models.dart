@@ -220,4 +220,96 @@ class QuizResult {
     
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
+}
+
+class QuizSession {
+  final int? id;
+  final int quizId;
+  final String sessionCode;
+  final String status; // "waiting", "active", "completed"
+  final DateTime createdAt;
+  String? quizTitle; // For display purposes, not stored directly
+
+  QuizSession({
+    this.id,
+    required this.quizId,
+    required this.sessionCode,
+    required this.status,
+    required this.createdAt,
+    this.quizTitle,
+  });
+
+  factory QuizSession.fromMap(Map<String, dynamic> map) {
+    return QuizSession(
+      id: map['id'],
+      quizId: map['quiz_id'],
+      sessionCode: map['session_code'],
+      status: map['status'],
+      createdAt: DateTime.parse(map['created_at']),
+      quizTitle: map['quiz_title'],
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'quiz_id': quizId,
+      'session_code': sessionCode,
+      'status': status,
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
+}
+
+class Player {
+  final int? id;
+  final int sessionId;
+  final String name;
+  final int? score;
+  final DateTime joinedAt;
+
+  Player({
+    this.id,
+    required this.sessionId,
+    required this.name,
+    this.score = 0,
+    required this.joinedAt,
+  });
+
+  factory Player.fromMap(Map<String, dynamic> map) {
+    return Player(
+      id: map['id'],
+      sessionId: map['session_id'],
+      name: map['name'],
+      score: map['score'],
+      joinedAt: DateTime.parse(map['joined_at']),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'session_id': sessionId,
+      'name': name,
+      'score': score,
+      'joined_at': joinedAt.toIso8601String(),
+    };
+  }
+
+  // Create a copy with updates
+  Player copyWith({
+    int? id,
+    int? sessionId,
+    String? name,
+    int? score,
+    DateTime? joinedAt,
+  }) {
+    return Player(
+      id: id ?? this.id,
+      sessionId: sessionId ?? this.sessionId,
+      name: name ?? this.name,
+      score: score ?? this.score,
+      joinedAt: joinedAt ?? this.joinedAt,
+    );
+  }
 } 

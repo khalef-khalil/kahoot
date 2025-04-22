@@ -20,7 +20,7 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'kahoot.db');
     return await openDatabase(
       path,
-      version: 6,
+      version: 7,
       onCreate: _createDb,
       onUpgrade: _onUpgrade,
     );
@@ -80,6 +80,31 @@ class DatabaseHelper {
         await db.execute('ALTER TABLE quizzes ADD COLUMN category TEXT DEFAULT "General"');
       }
     }
+    
+    if (oldVersion < 7) {
+      // Add multiplayer tables
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS quiz_sessions(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          quiz_id INTEGER,
+          session_code TEXT,
+          status TEXT,
+          created_at TEXT,
+          FOREIGN KEY (quiz_id) REFERENCES quizzes(id)
+        )
+      ''');
+      
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS players(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_id INTEGER,
+          name TEXT,
+          score INTEGER,
+          joined_at TEXT,
+          FOREIGN KEY (session_id) REFERENCES quiz_sessions(id)
+        )
+      ''');
+    }
   }
 
   Future<void> _createDb(Database db, int version) async {
@@ -128,6 +153,30 @@ class DatabaseHelper {
         date_taken TEXT,
         total_time INTEGER,
         FOREIGN KEY (quiz_id) REFERENCES quizzes(id)
+      )
+    ''');
+    
+    // Create quiz_sessions table for multiplayer
+    await db.execute('''
+      CREATE TABLE quiz_sessions(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        quiz_id INTEGER,
+        session_code TEXT,
+        status TEXT,
+        created_at TEXT,
+        FOREIGN KEY (quiz_id) REFERENCES quizzes(id)
+      )
+    ''');
+    
+    // Create players table for multiplayer
+    await db.execute('''
+      CREATE TABLE players(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id INTEGER,
+        name TEXT,
+        score INTEGER,
+        joined_at TEXT,
+        FOREIGN KEY (session_id) REFERENCES quiz_sessions(id)
       )
     ''');
   }
@@ -615,5 +664,97 @@ class DatabaseHelper {
         rethrow;
       }
     });
+  }
+
+  // Quiz Session operations
+  Future<int> createQuizSession(Map<String, dynamic> session) async {
+    Database db = await database;
+    return await db.insert('quiz_sessions', session);
+  }
+  
+  Future<List<Map<String, dynamic>>> getActiveSessions() async {
+    Database db = await database;
+    return await db.query(
+      'quiz_sessions',
+      where: 'status != ?',
+      whereArgs: ['completed'],
+      orderBy: 'created_at DESC'
+    );
+  }
+  
+  Future<Map<String, dynamic>?> getSessionByCode(String code) async {
+    Database db = await database;
+    List<Map<String, dynamic>> result = await db.query(
+      'quiz_sessions',
+      where: 'session_code = ?',
+      whereArgs: [code],
+      limit: 1
+    );
+    return result.isNotEmpty ? result.first : null;
+  }
+  
+  Future<int> updateSessionStatus(int sessionId, String status) async {
+    Database db = await database;
+    return await db.update(
+      'quiz_sessions',
+      {'status': status},
+      where: 'id = ?',
+      whereArgs: [sessionId]
+    );
+  }
+  
+  // Player operations
+  Future<int> addPlayer(Map<String, dynamic> player) async {
+    Database db = await database;
+    return await db.insert('players', player);
+  }
+  
+  Future<List<Map<String, dynamic>>> getPlayersBySession(int sessionId) async {
+    Database db = await database;
+    return await db.query(
+      'players',
+      where: 'session_id = ?',
+      whereArgs: [sessionId],
+      orderBy: 'score DESC'
+    );
+  }
+  
+  Future<int> updatePlayerScore(int playerId, int score) async {
+    Database db = await database;
+    return await db.update(
+      'players',
+      {'score': score},
+      where: 'id = ?',
+      whereArgs: [playerId]
+    );
+  }
+  
+  Future<void> endQuizSession(int sessionId) async {
+    Database db = await database;
+    await db.update(
+      'quiz_sessions',
+      {'status': 'completed'},
+      where: 'id = ?',
+      whereArgs: [sessionId]
+    );
+  }
+  
+  // Generate a unique session code
+  Future<String> generateUniqueSessionCode() async {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    String code;
+    bool isUnique = false;
+    
+    do {
+      code = '';
+      for (int i = 0; i < 6; i++) {
+        code += chars[DateTime.now().millisecondsSinceEpoch % chars.length];
+      }
+      
+      var existingSession = await getSessionByCode(code);
+      isUnique = existingSession == null;
+    } while (!isUnique);
+    
+    return code;
   }
 } 

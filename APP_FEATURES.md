@@ -59,6 +59,18 @@
 - Theme selector with multiple color options
 - App information (version and developer)
 
+## Multiplayer Mode
+- Host quizzes with unique session codes
+- Join existing quiz sessions with session codes
+- Real-time player roster in waiting room
+- Host controls for starting the quiz
+- Competitive gameplay with multiple participants
+- Color-coded answer buttons in Kahoot style
+- Automatic scoring system with time bonuses
+- Live leaderboard between questions
+- Final results with player rankings
+- Personal score tracking during gameplay
+
 ## Database
 - Local SQLite storage for quizzes, questions and answers
 - Persistent quiz data between app sessions
